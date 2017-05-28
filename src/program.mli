@@ -1,11 +1,13 @@
 
+val max_integer (** = Particle.number - 1 **)
+
 type register_type =
-    | type_integer (** Between 0 and 100 included **)
+    | type_integer (** Between 0 and max_integer **)
     | type_direction
     | type_boolean
 
 type expression =
-    | Constant_integer of int (** Between 0 and 100 included **)
+    | Constant_integer of int (** Between 0 and max_integer included **)
     | Constant_direction of direction
     | Constant_boolean of bool
     | Register of int (** Index of the register **)
@@ -17,10 +19,10 @@ type expression =
 
     | Equal of expression * expression (** Of any type, but they must be the same **)
     | Less_than of expression * expression (** Only integers **)
-    | Addition of expression * expression (** Only integers; if the result is more than 100, it is wrapped modulo 100 **)
-    | Multiplication of expression * expression (** Only integers; if the result is more than 100, it is wrapped modulo 100 **)
-    | Substraction of expression * expression (** Only integers; if the result is less than 0, it is wrapped modulo 100 **)
-    | Division of expression * expression (** Only integers; if the second one is zero, the result is 100. **)
+    | Addition of expression * expression (** Only integers; if the result is more than max_integer, it is wrapped modulo max_integer **)
+    | Multiplication of expression * expression (** Only integers; if the result is more than max_integer, it is wrapped modulo max_integer **)
+    | Substraction of expression * expression (** Only integers; if the result is less than 0, it is wrapped modulo max_integer **)
+    | Division of expression * expression (** Only integers; if the second one is zero, the result is max_integer. **)
     | Modulo of expression * expression (** Only integers; if the second one is zero, the result is 0. **)
     | And of expression * expression (** Only booleans **)
     | Or of expression * expression (** Only booleans **)
