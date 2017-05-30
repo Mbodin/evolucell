@@ -1,10 +1,15 @@
 
 type cell
 
+(** The type entity records all the movable components of the map. **)
+type entity =
+    | Creature of int * int (** Creature coordinates. **)
+    | Particle (* TODO *)
+    | Approvision
+
 type t =
     cell array array (** Map **)
-    * (int * int) list (** List of creature coordonates. **)
-    * unit list (** TODO: List of particles to move. **)
+    * entity list (** List of entities **)
 
 (** Indicates whether a cell is empty, that is that neither creatures neither obstacles are in the cell. **)
 val is_empty : cell -> bool

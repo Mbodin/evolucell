@@ -1,5 +1,5 @@
 
-val number (** The number of different particles in the game. **)
+val number (** The number of different particles in the game: 1000. **)
 
 (** The following functions take an integer as argument. This integer is the index of the referred particle, from 0 to number - 1. No other number should be given to this function. **)
 
@@ -11,7 +11,7 @@ val speed : int -> int (** The number of turn the particle waits before moving: 
 val absord_lights : int -> bool (** Whether the particle can absord light, making it able to store energy. **)
 
 val reaction : int -> int -> int option (** If reaction p1 p2 = None, then the particles p1 and p2 do not react with each other. If reaction p1 p2 = Some p3, this means that when in the same cell, particle p1 will spontaneously transform into particle p3. **)
-
+val corresponding_reaction : int -> (int * int) option (** Any particle type has at most one other particle type with which it interacts. This function returns for each particle type a pair of the optionnal particule with which it interacts, and the resulting particle. **)
 
 val cost_to_emit : int (** Energy cost to emit a particle. **)
 val gain_when_absorbed : int (** Energy gained when absorbing a particle. **)

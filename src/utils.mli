@@ -1,5 +1,6 @@
 
+(** The sum type of two types. **)
 type ('a, 'b) plus =
-    | left of 'a
-    | right of 'b
+    | Left of 'a
+    | Right of 'b
 

@@ -1,0 +1,53 @@
+
+expression p = 42 (* Light sensitive particle; it should move every two steps. *)
+expression particleCost = 7 (* Cost to emit a particle. *)
+expression particleGain = 3 (* Energy gain when absorbing a particle. *)
+
+expression numberOfParticle = 3 (* Number of particles we create to check that a particular spot may have light. *)
+expression distanceToMove = 5 (* Distance to move when looking for an appropriate spot. *)
+
+expression liveParticle = 10 (* Number of particle we create at each turn when we have found a spot. *)
+
+let findSource d =
+  if isEmpty d then
+    move d ;
+    checkSource d energy
+  else findSource (turnLeft d)
+
+let checkSource d (e : integer) =
+  produce numberOfParticle p ;
+  absorb ;
+  if (energy - e + 10 * particleCost (* energy gained during the absorption *)) % particleGain then
+    (* If we are in this branch, this means we absorbed some particle carrying some internal energy not matching the usual particle gain. We are thus probably near a source of light. *)
+    install
+  else moveAway distanceToMove d
+
+let moveAway (dist : integer) (dir : direction) =
+  if dist = 0 then findSource dir
+  else if isEmpty dir then
+    move dir ;
+    moveAway (dist - 1) dir
+  else moveAway dist (TurnLeft d)
+
+let install =
+  (* We have found a right spot, let us divide here. *)
+  live (* We could install a real colony, but let’s try it with only one cell. *)
+
+let live =
+  if energy > 500 then
+    divide N
+  else
+    (* We produce two lots of particles, then wait two turns, for then to accumulate some energy and compensate for the loss of energy needed for their creation. *)
+    produce liveParticle p ;
+    produce liveParticle p ;
+    wait ;
+    wait ;
+    absorb ;
+    live
+
+let divide d =
+  if isEmpty d then
+    clone d (moveAway d) ;
+    live
+  else divide (turnLeft d)
+

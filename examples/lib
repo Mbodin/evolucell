@@ -1,0 +1,4 @@
+
+let moveTo x y =
+    (* Relatively to the current position. If x or y are more than 500, they represent negative numbers. *)
+

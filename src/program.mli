@@ -3,13 +3,16 @@ val max_integer (** = Particle.number - 1 **)
 
 type register_type =
     | type_integer (** Between 0 and max_integer **)
-    | type_direction
-    | type_boolean
+    | type_direction (** Cardinal direction **)
+    | type_boolean (** A boolean **)
+    | type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **)
+    | type_any (** For unused arguments. Any object can be given to them. They may be optimised out. **)
 
 type expression =
     | Constant_integer of int (** Between 0 and max_integer included **)
     | Constant_direction of direction
     | Constant_boolean of bool
+    | Constant_state of int (** Index of the state in the program array **)
     | Register of int (** Index of the register **)
 
     | My_energy
@@ -33,13 +36,20 @@ type expression =
     | Opposite of expression (** Only direction **)
     | Turn_left of expression (** Only direction; turns 90 degrees left **)
     | Turn_right of expression (** Only direction; turns 90 degrees right **)
+    | Apply of expression * expression list (** Apply a state to its arguments. This may be a partial application. This returns a value of type state, with some optionnal argument if the application was partial. **)
 
 type instruction =
-    | Jump_if of expression (** Of type boolean **)
+    | Wait (** Does nothing during one turn **)
+    | Jump (** Jump to the dynamic state **)
+        of expression (** The state to jump to. It must be of type state with no argument (that is, be a fully applied state). **)
+    | Jump_if (** Jump to the following state if the computed expression evaluates to true **)
+        of expression (** Of type boolean **)
         * int (** Index of the state in the program array **)
         * expression array (** Argument of the state **)
-    | Move of expression (** The direction to move **)
-    | Produce_particles of expression (** The particle number **)
+    | Move (* The creature moves in the following direction. If there is an obstacle, the creature doesn’t move and gets some damages. If there is another creature, both creatures take damages. *)
+        of expression (** The direction to move **)
+    | Produce_particles (** Produces some particles. Note that there is a maximum number on the number of particle produced each turn. If the creature requires to produce more than possible, only the maximum amount is produced. **)
+        of expression (** The particle number **)
         * expression (** The number of such particles **)
     | Collect_particles (** Collect all particles in the current cell, converting them into energy, but taking the eventual damages **)
     | Clone (** The creature clones itself, creating an offspring (mutations can happens at this stage) **)

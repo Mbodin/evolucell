@@ -1,0 +1,19 @@
+
+let init = main N
+
+let main d =
+  if hasfood then
+    consume ;
+    divide d
+  else if hasCell d then
+    main (turnLeft d)
+  else
+    move d ;
+    main d
+
+let divide d =
+  if isEmpty d then
+    clone main d ;
+    main (turnLeft d)
+  else divide (turnLeft d)
+
