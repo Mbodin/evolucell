@@ -1,4 +1,64 @@
 
-let moveTo x y =
-    (* Relatively to the current position. If x or y are more than 500, they represent negative numbers. *)
+expression half = 500 (* Used to differentiate between positive and negative values. *)
+(* In this file, “positive” means to be less than the value half; “negative” means to be more, and the represented value is then max_integer - value. *)
+
+(* This state tries to move the cell to the x y coordinates (x poiting to the east and y to the north, as usual, coordinates are expressed with the current cell as origin; these coordinates are not supposed positive), then execute the state after. Note that this state will loop forever if the target is occupied or if there is not path from the current position to it. There also are some pathological configurations in which the cell will infinitely loop (in which the right hand path loops back to an already seen cell), but I beleive them to be very rare and not worth trying to take into account in oprder to keep the code simple. *)
+let goToCell (x y : integer) (after : state) =
+  (* The state “after” is the continuation. *)
+  if x < half then
+    if y < half then
+      goToCellAux N y E x after
+    else
+      goToCellAux E x S (0 - y) after
+  else
+    if y < half then
+      goToCellAux W (0 - x) N y after
+    else
+      goToCellAux S (0 - y) W (0 - x) after
+
+let goToCellAux (d1 : direction) n1 (d2 : direction) n2 after =
+  (* n1 and n2 are supposed positive integers, and are the coordinates with respect to the direction d1 and d2 to move. We have as an invariant here that d2 = turnRight d1. *)
+  if n1 > 0 then
+    if isEmpty d1 then
+      (* Moving along first coordinate. *)
+      move d1 ;
+      goToCellAux d1 (n1 - 1) d2 n2
+    else
+      if n2 > 0 then
+        if isEmpty d2 then
+          (* Moving along second coordinate. *)
+          move d2 ;
+          goToCellAux d1 n1 d2 (n2 - 1)
+        else (* Both directions are blocked: we now start the right hand path, facing (turnRight d2) as we know that the other two directions are blocked. *)
+          rightHand d1 n1 d2 n2 (turnRight d2) after
+      else (* We have n2 = 0, but the first direction is blocked, so we have to move along this second coordinate and start a right hand path. *)
+        rightHand d1 n1 d2 n2 d2 after
+  else (* n1 = 0 *)
+    if n2 > 0 then
+      if isEmpty d2 then
+        (* Moving along second coordinate. *)
+        move d2 ;
+        goToCellAux d1 n1 d2 (n2 - 1)
+      else (* We are aligned with the target in the first coordonate, but something blocks the way: we now start the right hand path. *)
+        rightHand d1 n1 d2 n2 (turnRight d2) after
+    else (* We are now with n1 = 0 and n2 = 0: we arrived at destination. *)
+      after
+
+let rightHand d1 n1 d2 n2 (d : direction) after =
+  (* n1 and n2 are not supposed positive. The current facing direction is d. The right hand path stops when the way is free along the first direction d1, in which we switch back to the direct path towards the target; it is at this stage that pathological configuration occurs. We have as an invariant here that d2 = turnRight d1. *)
+  if isEmpty d then
+    move d;
+    if d = d1 then
+      (* We are back to a wanted direction, free to go! *)
+      goToCell d1 (n1 - 1) d2 n2 after
+    else (* We now have to compute the new coordinates, then continue the search. Note how the direction is moved in the opposite direction than when encountering an obstacle. *)
+      if d = opposite d2 then
+        goToCell d1 n1 d2 (n2 + 1) (turnLeft d)
+      else
+        if d = opposite d1 then
+          goToCell d1 (n1 + 1) d2 n2 (turnLeft d)
+        else (* d = d2 *)
+          goToCell d1 n1 d2 (n2 - 1) (turnLeft d)
+  else (* We turn the direction to search. *)
+    rightHand d1 n1 d2 n2 (turnRight d)
 

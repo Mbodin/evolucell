@@ -20,6 +20,9 @@ val has_obstacle : cell -> bool
 (** Indicates whether a cell has a creature in it. **)
 val has_creature : cell -> bool
 
+(** Indicates whether a cell has nutriments in it. **)
+val has_nutriment : cell -> bool
+
 (** Indicates whether a cell has particles in it. **)
 val has_particles : cell -> bool
 

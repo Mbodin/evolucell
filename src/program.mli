@@ -17,11 +17,16 @@ type expression =
 
     | My_energy
     | My_life
+    | Has_nutrients (** Returns true if there are nutrients in the current cell **)
     | Has_particle of expression (** Returns true if the given particle number is present in the current cell **)
     | Has_particles (** Returns true if the current cell contains particles **)
     | Cell_empty of direction (** Returns true if the indicated cell is not occupied, neither by a creature or by an obstacle **)
     | Cell_creature of direction (** Returns true if the indicated cell is occupied by a creature **)
     | Cell_obstacle of direction (** Returns true if the indicated cell is occupied by an obstacle **)
+
+    | Random of expression (** Produces a random number between 0 and the given expression, which must be a number **)
+    | Random_direction (** Produces a random direction **)
+    | Random_boolean (** Produces a random boolean **)
 
     | Equal of expression * expression (** Of any type, but they must be the same **)
     | Less_than of expression * expression (** Only integers **)
@@ -52,6 +57,7 @@ type instruction =
         of expression (** The particle number **)
         * expression (** The number of such particles **)
     | Collect_particles (** Collect all particles in the current cell, converting them into energy, but taking the eventual damages **)
+    | Consume_nutrient (** Consume the nutrients present in the current cell, if any **)
     | Clone (** The creature clones itself, creating an offspring (mutations can happens at this stage) **)
         of expression (** The direction to be cloned **)
         * expression (** The energy given to the clone **)
