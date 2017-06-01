@@ -29,3 +29,6 @@ val has_particles : cell -> bool
 (** Indicates whether a cell has the given particle in it. **)
 val has_particle : cell -> int -> bool
 
+(** Indicates whether a cell has one of particle between the two (inclusive) bounds. This check is done in increasing order: particle_set c a b when b < a checks whether there are particles after a or before b. **)
+val has_particle_set : cell -> int -> int -> bool
+

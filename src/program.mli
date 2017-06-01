@@ -18,7 +18,7 @@ type expression =
     | My_energy
     | My_life
     | Has_nutrients (** Returns true if there are nutrients in the current cell **)
-    | Has_particle of expression (** Returns true if the given particle number is present in the current cell **)
+    | Has_particle of expression * expression (** Returns true if a particle between the two bounds is present in the current cell **)
     | Has_particles (** Returns true if the current cell contains particles **)
     | Cell_empty of direction (** Returns true if the indicated cell is not occupied, neither by a creature or by an obstacle **)
     | Cell_creature of direction (** Returns true if the indicated cell is occupied by a creature **)
