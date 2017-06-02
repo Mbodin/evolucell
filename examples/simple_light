@@ -8,6 +8,8 @@ expression distanceToMove = 5 (* Distance to move when looking for an appropriat
 
 expression liveParticle = 10 (* Number of particle we create at each turn when we have found a spot. *)
 
+let start = findSource N
+
 let findSource d =
   if isEmpty d then
     move d ;

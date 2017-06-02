@@ -1,19 +1,19 @@
 
-let init = main N
+let start = main N
 
-let main d =
-  if hasfood then
+let main (d : direction) =
+  if hasFood then
     consume ;
     divide d
-  else if hasCell d then
-    main (turnLeft d)
-  else
+  else if isEmpty d then
     move d ;
     main d
+  else
+    main (turnLeft d)
 
 let divide d =
   if isEmpty d then
-    clone main d ;
+    clone d (main d) ;
     main (turnLeft d)
   else divide (turnLeft d)
 

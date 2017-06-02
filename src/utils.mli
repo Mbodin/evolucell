@@ -5,16 +5,17 @@ type ('a, 'b) plus =
     | Right of 'b
 
 
-(** Creates a list from a function providing the optionnal next element and iterator. **)
-let unfold : ('a -> ('b * 'a) option) -> 'a -> list 'b
+(** Creates a list from a function providing the optionnal next element and iterator. The first element given is used to initialise the function and is not inserted into the list. **)
+val unfold : ('a -> ('b * 'a) option) -> 'a -> 'b list
 
 (** Builds the list of nth first elements, from 0 to n - 1. **)
-let seq : int -> int list
+val seq : int -> int list
 
 (** Takes a weigthed list and return a random element from it. **)
-let select : (int * 'a) list -> 'a
+val select : (int * 'a) list -> 'a
 
-(** Possible exceptions returns by the select function. **)
+(** Possible exception returned by the select function. **)
 exception NegativeWeigth
-exception EmptyList
+(** Note that if the list is empty, the total weigth will be zero and the exception NegativeWeigth will also be sent. **)
+exception InternalError
 
