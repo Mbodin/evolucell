@@ -2,11 +2,25 @@
 val max_integer (** = Particle.number - 1 **)
 
 type register_type =
-    | type_integer (** Between 0 and max_integer **)
-    | type_direction (** Cardinal direction **)
-    | type_boolean (** A boolean **)
-    | type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **)
-    | type_any (** For unused arguments. Any object can be given to them. They may be optimised out. **)
+    | Type_integer (** Between 0 and max_integer **)
+    | Type_direction (** Cardinal direction **)
+    | Type_boolean (** A boolean **)
+    | Type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **)
+    | Type_any (** For unused arguments. Any object can be given to them. They may be optimised out. **)
+
+type direction =
+    | N (** North **)
+    | E (** East **)
+    | S (** South **)
+    | W (** West **)
+
+type value = (** The type of program values **)
+    | Value_integer of int (** Between 0 and max_integer included **)
+    | Value_direction of direction
+    | Value_boolean of bool
+    | Value_state
+        of int (** Index of the state in the program array **)
+        * value list (** Partically applied arguments **)
 
 type expression =
     | Constant_integer of int (** Between 0 and max_integer included **)
@@ -57,6 +71,8 @@ type instruction =
         of expression (** The particle number **)
         * expression (** The number of such particles **)
     | Collect_particles (** Collect all particles in the current cell, converting them into energy, but taking the eventual damages **)
+    | Produce_nutrient (** Produce the equivalent amount uf energy given in argument to nutrients **)
+        of expression (** The energy given **)
     | Consume_nutrient (** Consume the nutrients present in the current cell, if any **)
     | Clone (** The creature clones itself, creating an offspring (mutations can happens at this stage) **)
         of expression (** The direction to be cloned **)
@@ -74,10 +90,17 @@ type state =
 
 (** Programs are seen as a finite state machine. **)
 type program =
-    program_state array
+    state array
 
+(** A program state is composed of the whole program and the current state it currently is.  **)
+type program_state =
+    program
+    * int (** Current state number **)
+    * value array (** Arguments given to the state **)
 
-val instruction_cost : instruction -> int (** Returns the cost of the instruction **)
+val expression_cost : expression -> int (** Returns the cost of the expression. **)
+
+val instruction_cost : instruction -> int (** Returns the cost of the instructi. **)
 
 type type_check_error =
     | Invalid_number_of_argument of int (** Index of the calling state **)
@@ -94,4 +117,23 @@ val type_check_expression : register_type array (** The registers of the current
 
 (** Type check whether a program is safe (returning None), or returns the error if any. **)
 val type_check : program -> type_check_error option
+
+(** Actions / side effects of a program **)
+type action =
+    | Action_wait
+    | Action_move of direction
+    | Action_produce_particules of int (** Particle number **)
+    | Action_collect_particules
+    | Action_produce_nutrient of int (** Quantity of energy converted **)
+    | Action_consume_nutrient
+    | Action_clone
+        of direction (** Direction to clone **)
+        * int (** Energy given to the new creature **)
+        * program_state (** Program state of the new creature **)
+
+(** Execute one instruction of a program **)
+val execute : program -> program_state -> action option * program_state
+
+(** Iterate the execution a given number of time. If no action is emitted when the bound is reached, the chosen action is Action_wait. **)
+val execute_several : int (** Time given **) -> program -> program_state -> action * program_state
 
