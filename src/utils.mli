@@ -19,3 +19,10 @@ exception NegativeWeigth
 (** Note that if the list is empty, the total weigth will be zero and the exception NegativeWeigth will also be sent. **)
 exception InternalError
 
+
+(** Sums the integers of the list. **)
+val sum : int list -> int
+
+(** Sums the integers of the array. **)
+val array_sum : int array -> int
+

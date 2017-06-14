@@ -135,7 +135,7 @@ let product_to_particle i = (* 0 <= i < 500 *)
 
 let _ =
     (* There are various kinds of reactions. We here generate once after the other. *)
-    (* The first 2 * 3 * 20 are inhibitor / TODO *)
+    (* The first 2 * 3 * 20 = 120 are inhibitors/promotion: they each map a particle either close or far from a representant, to one closer/farther. At each time, there are three variants of the inhibitor/promotion: two at one side of the representant, one in the other, with various jumps. *)
     (* The second 19 * 19 = 361 jumps from each representant to the other one. The number 19 is chosen instead of 20 to make these progressively “miss” some contents in the particle array. *)
     for i = 0 to 19 do
         for j = 0 to 19 do

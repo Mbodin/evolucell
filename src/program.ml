@@ -95,73 +95,63 @@ type program_state =
     * int
     * value array
 
-let expression_cost = function
+let rec expression_cost = function
     | Constant_integer _ -> 0
-    | Constant_direction of direction
-    | Constant_boolean of bool
-    | Constant_state of int
-    | Register of int
+    | Constant_direction _ -> 0
+    | Constant_boolean _ -> 0
+    | Constant_state _ -> 0
+    | Register -> 0
 
-    | My_energy
-    | My_life
-    | Has_nutrients
-    | Has_particle of expression * expression
-    | Has_particles
-    | Cell_empty of direction
-    | Cell_creature of direction
-    | Cell_obstacle of direction
+    | My_energy -> 0
+    | My_life -> 0
+    | Has_nutrients -> 1
+    | Has_particle (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Has_particles -> 1
+    | Cell_empty e -> 1 + expression_cost e
+    | Cell_creature e -> 1 + expression_cost e
+    | Cell_obstacle e -> 1 + expression_cost e
 
-    | Random of expression
-    | Random_direction
-    | Random_boolean
+    | Random e -> 1 + expression_cost e
+    | Random_direction -> 1
+    | Random_boolean -> 1
 
-    | Equal of expression * expression
-    | Less_than of expression * expression
-    | Addition of expression * expression
-    | Multiplication of expression * expression
-    | Substraction of expression * expression
-    | Division of expression * expression
-    | Modulo of expression * expression
-    | And of expression * expression
-    | Or of expression * expression
-    | Not of expression
-    | Opposite of expression
-    | Turn_left of expression
-    | Turn_right of expression
-    | Apply of expression * expression list
+    | Equal (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Less_than (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Addition (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Multiplication (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Substraction (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Division (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Modulo (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | And (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Or (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Not e -> 1 + expression_cost e
+    | Opposite e -> 1 + expression_cost e
+    | Turn_left e -> 1 + expression_cost e
+    | Turn_right e -> 1 + expression_cost e
+    | Apply (e, l) -> 1 + expression_cost e + Utils.sum (List.map expression_cost e)
 
 let instruction_cost = function
     | Wait -> 1
-    | Jump
-        of expression
-    | Jump_if
-        of expression
-        * int
-        * expression array
-    | Move
-        of expression
-    | Produce_particles
-        of expression
-        * expression
-    | Collect_particles
-    | Produce_nutrient
-        of expression
-    | Consume_nutrient
-    | Clone
-        of expression
-        * expression
-        * int
-        * expression array
+    | Jump e -> expression_cost e
+    | Jump_if (e, _, a) -> 1 + expression_cost e + Utils.array_sum (Array.map expression_cost a)
+    | Move e -> 1 + expression_cost e
+    | Produce_particles (e1, e2) -> 1 + expression_cost e1 + expression_cost e2
+    | Collect_particles -> 1
+    | Produce_nutrient e -> 1 + expression_cost e
+    | Consume_nutrient -> e
+    | Clone (e1, e2, _, a) -> 1 + expression_cost e1 + expression_cost e2 + Utils.array_sum (Array.map expression_cost a)
 
 type type_check_error =
-    | Invalid_number_of_argument of int (** Index of the calling state **)
-        * int (** Expected number of arguments **)
-        * int (** Given number of arguments **)
-    | Invalid_type_of_argument of int (** Index of the calling state **)
-        * int (** Index of the mistyped argument **)
-        * register_type (** Expected type **)
-        * register_type (** Given type **)
-    | Invalid_state_index of int (** Index of the calling state **)
+    | Invalid_number_of_argument
+        of int
+        * int
+        * int
+    | Invalid_type_of_argument
+        of int
+        * int
+        * register_type
+        * register_type
+    | Invalid_state_index of int
 
 (** Type check whether an expression is safe (returning its type), or returns the error if any. **)
 val type_check_expression : register_type array (** The registers of the current state **) -> expression -> (type_check_error, register_type) Utils.plus

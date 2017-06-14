@@ -31,3 +31,7 @@ let select l =
                 else search (t - p) l
         in search (Random.int s) l
 
+
+let sum = List.fold_left 0 (+)
+let array_sum = Array.fold_left 0 (+)
+
