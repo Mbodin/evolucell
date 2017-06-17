@@ -134,16 +134,78 @@ let product_to_particle i = (* 0 <= i < 500 *)
     4 * i + 1 - reactable_to_particle i
 
 let _ =
+    (* These two arrays states which indexes are already in a reaction. *)
+    let reactables = Array.make 500 false in
+    let products = Array.make 500 false in
+    let free_around t i =
+        let rec search_step i step =
+            let i = (500 + i) mod 500 in
+            if t.(i) = false then i
+            else search_step (i + step) step
+        in
+        let after = search_step i 1 in
+        let before = search_step i (-1) in
+        let d_after =
+            if after >= i then
+                after - i
+            else
+                500 - (i - after) in
+        let d_before =
+            if before <= i then
+                i - before
+            else
+                500 - (before - i) in
+        if d_after <= d_before then
+            after
+        else before
+    in
+    (* Tries to assign the given reaction. If already taken, finds the closest possible. *)
+    let assign_reaction catalysor reactable product =
+        let reactable = free_around reactables reactable in
+        let product = free_around products product in
+        reactables.(reactable) <- true ;
+        products.(product) <- true ;
+        data_reaction.(reactable_to_particle reactable) <-
+            Some (catalysor, product_to_particle product)
+    in
     (* There are various kinds of reactions. We here generate once after the other. *)
-    (* The first 2 * 3 * 20 = 120 are inhibitors/promotion: they each map a particle either close or far from a representant, to one closer/farther. At each time, there are three variants of the inhibitor/promotion: two at one side of the representant, one in the other, with various jumps. *)
-    (* The second 19 * 19 = 361 jumps from each representant to the other one. The number 19 is chosen instead of 20 to make these progressively “miss” some contents in the particle array. *)
-    for i = 0 to 19 do
-        for j = 0 to 19 do
-            ()
+    (* The first 2 * 3 * 20 = 120 are inhibitors/promotion: they each map a particle either close or far from a representant, to one closer/farther. At each time, there are three variants of the inhibitor/promotion: two at one side of the representant, one in the other, with various jumps. The catalysors are in the ranges from 1 to 20 and from 480 to 499. *)
+    for i = 1 to 20 do
+        let center = 500 * i / 20 in
+        let catalysor_promotion = i in
+        let catalysor_inhibitor = 500 - i in
+        let diff = [ -5, -1 ; 10, -4 ; -20, -12 ] in
+        let diff_inverse = List.map (fun (a, b) -> (-a, -b)) diff in
+        let diff_promotion =
+            if i mod 2 = 0 then diff else diff_inverse in
+        let diff_inhibitor =
+            List.map (fun (a, b) -> (b, a))
+                (if i mod 2 = 1 then diff else diff_inverse) in
+        let diffs =
+            List.map (fun (a, b) -> (catalysor_promotion, a, b)) diff_promotion
+            @ List.map (fun (a, b) -> (catalysor_inhibitor, a, b)) diff_inhibitor in
+        List.iter (fun (catalysor, a, b) ->
+            assign_reaction catalysor (center + a) (center + b)) diffs
+    done ;
+    (* The second 19 * 19 = 361 jumps from each representant to the other one. The number 19 is chosen instead of 20 to make these progressively “miss” some contents in the particle array. The catalysors are in the ranges from 21 to 30 and from 471 to 479. *)
+    for i = 1 to 19 do
+        for j = 1 to 19 do
+            let catalysor =
+                if i <= 10 then
+                    20 + i
+                else
+                    490 - i
+            in
+            assign_reaction catalysor (500 * j / 19) (500 * (i + j) / 19)
         done
     done ;
+    (* The last 19 jumps have a catalyser which not near zero, but near a representent. This catalysor makes a distant particle to jump to its number. *)
+    for i = 1 to 19 do
+        let product = free_around products (500 * i / 20) in
+        let reactable = (product + 250) / 500 in
+        assign_reaction (product_to_particle product) reactable product
+    done ;
     ()
-(* TODO *)
 
 (** We now deal with speed. **)
 let _ =

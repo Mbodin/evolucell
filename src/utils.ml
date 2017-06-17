@@ -1,6 +1,8 @@
 
 let _ = Random.self_init ()
 
+let id x = x
+
 type ('a, 'b) plus =
     | Left of 'a
     | Right of 'b
@@ -32,6 +34,8 @@ let select l =
         in search (Random.int s) l
 
 
-let sum = List.fold_left 0 (+)
-let array_sum = Array.fold_left 0 (+)
+let sum = List.fold_left (+) 0
+let array_sum = Array.fold_left (+) 0
+
+let array_count f = Array.fold_left (fun v x -> v + if f x then 1 else 0) 0
 

@@ -1,4 +1,8 @@
 
+(** Returns its argument. **)
+val id : 'a -> 'a
+
+
 (** The sum type of two types. **)
 type ('a, 'b) plus =
     | Left of 'a
@@ -25,4 +29,7 @@ val sum : int list -> int
 
 (** Sums the integers of the array. **)
 val array_sum : int array -> int
+
+(** Indicates how many elements of the array satisfy the predicates. **)
+val array_count : ('a -> bool) -> 'a array -> int
 
