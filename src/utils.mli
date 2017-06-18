@@ -8,6 +8,8 @@ type ('a, 'b) plus =
     | Left of 'a
     | Right of 'b
 
+(** The following function considers the Left-constructor to represent an error. **)
+val error_monad : ('a, 'b) plus -> ('b -> ('a, 'c) plus) -> ('a, 'c) plus
 
 (** Creates a list from a function providing the optionnal next element and iterator. The first element given is used to initialise the function and is not inserted into the list. **)
 val unfold : ('a -> ('b * 'a) option) -> 'a -> 'b list
@@ -32,4 +34,30 @@ val array_sum : int array -> int
 
 (** Indicates how many elements of the array satisfy the predicates. **)
 val array_count : ('a -> bool) -> 'a array -> int
+
+
+(** A type for identifiers. Integers are used internally, but hidding this faxt in the signature helps preventing mistakes. **)
+type idt (** = int **)
+
+(** Generates a new identifier. **)
+val new_id : unit -> idt
+
+(** If a large number of identifiers is generated, it is better to have a count just for the application and not a global one. This function thus returns a function counting for the specific usage to be applied. **)
+val new_id_function : unit -> unit -> idt
+
+
+(** A type for a (non-functional) union-find structure. **)
+type 'a union_find
+
+(** Creates an empty union-find structure. **)
+val create_union_find : unit -> 'a union_find
+
+(** Inserts an element to the given union-find structure: it is now associated to a identifier. **)
+val insert : 'a union_find -> 'a -> unit
+
+(** Merges two elements of the union-find structure. **)
+val merge : 'a union_find -> 'a -> 'a -> unit
+
+(** Returns the identifier of the class of an element in a union-find. Note that such identifiers are updated at each merge. Returns None if the element is not present. **)
+val find : 'a union_find -> 'a -> idt option
 

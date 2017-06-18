@@ -6,7 +6,7 @@ type register_type =
     | Type_direction (** Cardinal direction **)
     | Type_boolean (** A boolean **)
     | Type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **)
-    | Type_any (** For unused arguments. Any object can be given to them. They may be optimised out. **)
+    | Type_variable of Utils.idt (** A type variable, mainly used during the type-checking. **)
 
 type direction =
     | N (** North **)
@@ -42,6 +42,7 @@ type expression =
     | Random_direction (** Produces a random direction **)
     | Random_boolean (** Produces a random boolean **)
 
+    | If_then_else of expression * expression * expression (** The first must be a boolean, the other two of any type, but must be the same **)
     | Equal of expression * expression (** Of any type, but they must be the same **)
     | Less_than of expression * expression (** Only integers **)
     | Addition of expression * expression (** Only integers; if the result is more than max_integer, it is wrapped modulo max_integer **)

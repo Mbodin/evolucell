@@ -134,13 +134,13 @@ let product_to_particle i = (* 0 <= i < 500 *)
     4 * i + 1 - reactable_to_particle i
 
 let _ =
-    (* These two arrays states which indexes are already in a reaction. *)
-    let reactables = Array.make 500 false in
-    let products = Array.make 500 false in
+    (* These two arrays states which indexes are free to be in a reaction. *)
+    let reactables = Array.make 500 true in
+    let products = Array.make 500 true in
     let free_around t i =
         let rec search_step i step =
             let i = (500 + i) mod 500 in
-            if t.(i) = false then i
+            if t.(i) then i
             else search_step (i + step) step
         in
         let after = search_step i 1 in
@@ -163,8 +163,8 @@ let _ =
     let assign_reaction catalysor reactable product =
         let reactable = free_around reactables reactable in
         let product = free_around products product in
-        reactables.(reactable) <- true ;
-        products.(product) <- true ;
+        reactables.(reactable) <- false ;
+        products.(product) <- false ;
         data_reaction.(reactable_to_particle reactable) <-
             Some (catalysor, product_to_particle product)
     in

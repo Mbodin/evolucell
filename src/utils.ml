@@ -7,6 +7,11 @@ type ('a, 'b) plus =
     | Left of 'a
     | Right of 'b
 
+let error_monad o f =
+    match o with
+    | Left e -> Left e
+    | Right v -> f v
+
 let rec unfold f i =
     match f i with
     | None -> []
@@ -38,4 +43,27 @@ let sum = List.fold_left (+) 0
 let array_sum = Array.fold_left (+) 0
 
 let array_count f = Array.fold_left (fun v x -> v + if f x then 1 else 0) 0
+
+
+type idt = int
+
+let new_id_function () =
+    let current = ref (-1) in
+    fun () ->
+        incr current ;
+        !current
+
+let new_id = new_id_function ()
+
+
+type 'a unionFind =
+    (* TODO *)
+
+val create_union_find : unit -> 'a union_find
+
+val insert : 'a union_find -> 'a -> unit
+
+val find : 'a union_find -> 'a -> idt option
+
+val merge : 'a union_find -> 'a -> 'a -> unit
 
