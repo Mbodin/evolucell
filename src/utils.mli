@@ -46,11 +46,33 @@ val new_id : unit -> idt
 val new_id_function : unit -> unit -> idt
 
 
+(** A type for a mapping from a type to identifiers. **)
+type 'a idt_map
+
+(** Get the identifier from the identifier map. The function may return None if the identifier is not in the mapping, but the important property is that if it returns Some for an object, this value is consistently different from the one of any other objects, expect of course for the same objects. **)
+val get_id : 'a idt_map -> 'a -> idt option
+
+(** Create a identifier map. **)
+val idt_map_create : 'a idt_map
+
+(** Create a identifier map specialised for the type idt. **)
+val idt_idt_map_create : idt idt_map
+(** Create a identifier map specialised for the type int. **)
+val idt_int_map_create : int idt_map
+
+(** Inserts an object to an identifier map, giving it an identifier. **)
+val idt_map_insert : 'a idt_map -> 'a -> 'a idt_map
+
+
 (** A type for a (non-functional) union-find structure. **)
 type 'a union_find
 
 (** Creates an empty union-find structure. **)
 val create_union_find : unit -> 'a union_find
+
+(** Variant for specialised versions of the union-find structure. **)
+val create_union_find_idt : unit -> idt union_find
+val create_union_find_int : unit -> int union_find
 
 (** Inserts an element to the given union-find structure: it is now associated to a identifier. **)
 val insert : 'a union_find -> 'a -> unit

@@ -56,6 +56,36 @@ let new_id_function () =
 let new_id = new_id_function ()
 
 
+module Compare =
+    struct
+        let compare = Pervasives.compare
+        type t = 'a
+    end
+
+type _ idt_map =
+    | Idt_map : idt Map.Make Compare.t -> (unit -> idt) -> 'a idt_map
+    | Idt_int : idt idt_map (* No need to create new identifiers for integers! *)
+
+let idt_map_create =
+    Idt_map Map.Make Compare.empty (new_id_function ())
+
+let idt_idt_map_create =
+    Idt_int
+let idt_int_map_create =
+    Idt_int
+
+let idt_map_insert = function
+    | Idt_map m f -> fun o ->
+        Idt_map (Map.Make Compare.add o (f ())) f
+    | Idt_int -> fun _ -> Idt_int
+
+let get_id = function
+    | Idt_map m f -> fun o ->
+        try Some (Map.Make (???).find m o)
+        with Not_found -> None
+    | Idt_int -> fun i -> Some i
+
+
 type 'a unionFind =
     (* TODO *)
 
