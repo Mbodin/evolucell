@@ -3,6 +3,14 @@ let _ = Random.self_init ()
 
 let id x = x
 
+let option_map f = function
+    | None -> None
+    | Some x -> Some (f x)
+
+let if_option = function
+    | None -> fun _ -> None
+    | Some x -> fun f -> f x
+
 type ('a, 'b) plus =
     | Left of 'a
     | Right of 'b
@@ -56,44 +64,80 @@ let new_id_function () =
 let new_id = new_id_function ()
 
 
-module Compare =
-    struct
-        let compare = Pervasives.compare
-        type t = 'a
-    end
+module GeneralMap =
+    Make.Make (struct
+            let compare = Pervasives.compare
+            type t = 'a
+        end)
 
 type _ idt_map =
-    | Idt_map : idt Map.Make Compare.t -> (unit -> idt) -> 'a idt_map
+    | Idt_map : idt GeneralMap.t * (unit -> idt) -> 'a idt_map
     | Idt_int : idt idt_map (* No need to create new identifiers for integers! *)
 
 let idt_map_create =
-    Idt_map Map.Make Compare.empty (new_id_function ())
+    Idt_map (GeneralMap.empty, (new_id_function ()))
 
 let idt_idt_map_create =
     Idt_int
 let idt_int_map_create =
-    Idt_int
+    idt_idt_map_create
 
-let idt_map_insert = function
-    | Idt_map m f -> fun o ->
-        Idt_map (Map.Make Compare.add o (f ())) f
-    | Idt_int -> fun _ -> Idt_int
+let idt_map_insert_idt = function
+    | Idt_map (m, f) -> fun o ->
+        let i = f () in
+        Idt_map (GeneralMap.add m o i, f), i
+    | Idt_int -> fun i ->
+        Idt_int, i
+
+let idt_map_insert m e =
+    fst (idt_map_insert_idt m e)
 
 let get_id = function
-    | Idt_map m f -> fun o ->
-        try Some (Map.Make (???).find m o)
+    | Idt_map (m, f) -> fun o ->
+        try Some (GeneralMap.find m o)
         with Not_found -> None
-    | Idt_int -> fun i -> Some i
+    | Idt_int -> fun i ->
+        Some i
 
 
 type 'a unionFind =
-    (* TODO *)
+    'a idt_map * idt GeneralMap.t
 
-val create_union_find : unit -> 'a union_find
+let create_union_find = idt_map_create, idt_idt_map_create
 
-val insert : 'a union_find -> 'a -> unit
+let create_union_find_idt = idt_idt_map_create, idt_idt_map_create
+let create_union_find_int = create_union_find_idt
 
-val find : 'a union_find -> 'a -> idt option
+let insert_idt (m, p) e =
+    let (m, i) =
+        match get_id m e with
+        | None ->
+            idt_map_insert_idt m e
+        | Some i -> m, i
+    in
+    i, (m, GeneralMap.add p i i)
 
-val merge : 'a union_find -> 'a -> 'a -> unit
+let insert mp e =
+    snd (insert_idt mp e)
+
+let find (m, p) e =
+    let rec aux p i =
+        let pi = GeneralMap.find p i in
+        if i = pi then
+            Some (i, p)
+        else let (p, pi') = aux p pi in
+             pi', GeneralMap.write p i pi'
+    in
+    if_option (GeneralMap.find m e) (aux p)
+
+let find_insert mp e =
+    match find mp e with
+    | Some r -> r
+    | None ->
+        insert mp e
+
+let merge mp e1 e2 =
+    let (i1, mp) = find_insert mp e1 in
+    let (i2, (m, p)) = find_insert mp e2 in
+    m, GeneralMap.add p i1 i2
 

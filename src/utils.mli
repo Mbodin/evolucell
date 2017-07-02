@@ -2,6 +2,11 @@
 (** Returns its argument. **)
 val id : 'a -> 'a
 
+(** Maps an option value **)
+val option_map : ('a -> 'b) -> 'a option -> 'b option
+
+(** The monadic version of option_map **)
+val if_option : 'a option -> ('a -> 'b option) -> 'b option
 
 (** The sum type of two types. **)
 type ('a, 'b) plus =
@@ -62,24 +67,32 @@ val idt_int_map_create : int idt_map
 
 (** Inserts an object to an identifier map, giving it an identifier. **)
 val idt_map_insert : 'a idt_map -> 'a -> 'a idt_map
+(** As for idt_map_insert, but also returns the chosen identifier.  **)
+val idt_map_insert_idt : 'a idt_map -> 'a -> 'a idt_map * idt
 
 
-(** A type for a (non-functional) union-find structure. **)
+(** A type for a union-find structure. **)
 type 'a union_find
 
 (** Creates an empty union-find structure. **)
-val create_union_find : unit -> 'a union_find
+val create_union_find : 'a union_find
 
 (** Variant for specialised versions of the union-find structure. **)
-val create_union_find_idt : unit -> idt union_find
-val create_union_find_int : unit -> int union_find
+val create_union_find_idt : idt union_find
+val create_union_find_int : int union_find
 
 (** Inserts an element to the given union-find structure: it is now associated to a identifier. **)
-val insert : 'a union_find -> 'a -> unit
+val insert : 'a union_find -> 'a -> 'a union_find
 
-(** Merges two elements of the union-find structure. **)
-val merge : 'a union_find -> 'a -> 'a -> unit
+(** Same as insert, but also returns the associated identifier. **)
+val insert_idt : 'a union_find -> 'a -> idt * 'a union_find
 
-(** Returns the identifier of the class of an element in a union-find. Note that such identifiers are updated at each merge. Returns None if the element is not present. **)
-val find : 'a union_find -> 'a -> idt option
+(** Merges two elements of the union-find structure. If the elements are not present, it creates it. **)
+val merge : 'a union_find -> 'a -> 'a -> 'a union_find
+
+(** Returns the identifier of the class of an element in a union-find. Note that such identifiers are updated at each merge. May return None if the element is not present. The find function may optimise the union-find structure: the update structure is returned in the result. Such an optimised structure is equivalent than the previous one, just quicker to read. **)
+val find : 'a union_find -> 'a -> (idt * 'a union_find) option
+
+(** Same as find, but inserts the element if not present. **)
+val find_insert : 'a union_find -> 'a -> idt * 'a union_find
 
