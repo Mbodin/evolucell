@@ -22,6 +22,9 @@ val unfold : ('a -> ('b * 'a) option) -> 'a -> 'b list
 (** Builds the list of nth first elements, from 0 to n - 1. **)
 val seq : int -> int list
 
+(** Takes a list and return a random element from it. **)
+val select_any : 'a list -> 'a
+
 (** Takes a weigthed list and return a random element from it. **)
 val select : (int * 'a) list -> 'a
 
@@ -41,7 +44,7 @@ val array_sum : int array -> int
 val array_count : ('a -> bool) -> 'a array -> int
 
 
-(** A type for identifiers. Integers are used internally, but hidding this faxt in the signature helps preventing mistakes. **)
+(** A type for identifiers. Integers are used internally, but hidding this fact in the signature helps preventing mistakes. **)
 type idt (** = int **)
 
 (** Generates a new identifier. **)
@@ -58,7 +61,7 @@ type 'a idt_map
 val get_id : 'a idt_map -> 'a -> idt option
 
 (** Create a identifier map. **)
-val idt_map_create : 'a idt_map
+val idt_map_create : unit -> 'a idt_map
 
 (** Create a identifier map specialised for the type idt. **)
 val idt_idt_map_create : idt idt_map
@@ -68,14 +71,14 @@ val idt_int_map_create : int idt_map
 (** Inserts an object to an identifier map, giving it an identifier. **)
 val idt_map_insert : 'a idt_map -> 'a -> 'a idt_map
 (** As for idt_map_insert, but also returns the chosen identifier.  **)
-val idt_map_insert_idt : 'a idt_map -> 'a -> 'a idt_map * idt
+val idt_map_insert_idt : 'a idt_map -> 'a -> idt * 'a idt_map
 
 
 (** A type for a union-find structure. **)
 type 'a union_find
 
 (** Creates an empty union-find structure. **)
-val create_union_find : 'a union_find
+val create_union_find : unit -> 'a union_find
 
 (** Variant for specialised versions of the union-find structure. **)
 val create_union_find_idt : idt union_find
@@ -89,6 +92,9 @@ val insert_idt : 'a union_find -> 'a -> idt * 'a union_find
 
 (** Merges two elements of the union-find structure. If the elements are not present, it creates it. **)
 val merge : 'a union_find -> 'a -> 'a -> 'a union_find
+
+(** Same as merge, but also returns the associated identifier. **)
+val merge_idt : 'a union_find -> 'a -> 'a -> idt * 'a union_find
 
 (** Returns the identifier of the class of an element in a union-find. Note that such identifiers are updated at each merge. May return None if the element is not present. The find function may optimise the union-find structure: the update structure is returned in the result. Such an optimised structure is equivalent than the previous one, just quicker to read. **)
 val find : 'a union_find -> 'a -> (idt * 'a union_find) option

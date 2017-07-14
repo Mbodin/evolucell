@@ -19,7 +19,7 @@ val gain_when_absorbed : int (** Energy gained when absorbing a particle. **)
 (** Note that gain_when_absorbed < cost_to_emit: we lose some energy in the process of creating and absording particles. **)
 
 type t = (** Type of a given particle released in the field. **)
-    int (** Particle index (from 0 to number - 1) **)
-    * (int * int) (** Coordinates in the field **)
-    * int (** Additional energy stored in the particle due to light absorbtion **)
+  int (** Particle index (from 0 to number - 1) **)
+  * (int * int) (** Coordinates in the field **)
+  * int (** Additional energy stored in the particle due to light absorbtion **)
 

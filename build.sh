@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Compile to bytecode
-ocamlbuild -pkg extlib evolucell.byte
+ocamlbuild -I src -pkg extlib evolucell.byte
 
 # Translate to JavaScript
 

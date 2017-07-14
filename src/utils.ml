@@ -46,6 +46,9 @@ let select l =
         else search (t - p) l
     in search (Random.int s) l
 
+let select_any l =
+  List.nth l (Random.int (List.length l))
+
 
 let sum = List.fold_left (+) 0
 let array_sum = Array.fold_left (+) 0
@@ -65,10 +68,10 @@ let new_id = new_id_function ()
 
 
 type _ idt_map =
-  | Idt_map : ('a, idt) PMap.t * (unit -> idt) -> 'a idt_map (* TODO: Insert the map module directly here with the syntax (module Module_type) to use it as first-class object. *)
+  | Idt_map : ('a, idt) PMap.t * (unit -> idt) -> 'a idt_map
   | Idt_int : idt idt_map (* No need to create new identifiers for integers! *)
 
-let idt_map_create =
+let idt_map_create _ =
   Idt_map (PMap.empty, (new_id_function ()))
 
 let idt_idt_map_create =
@@ -76,17 +79,17 @@ let idt_idt_map_create =
 let idt_int_map_create =
   idt_idt_map_create
 
-let idt_map_insert_idt = function
+let idt_map_insert_idt (type a) : a idt_map -> a -> idt * a idt_map = function
   | Idt_map (m, f) -> fun o ->
     let i = f () in
-    Idt_map (PMap.add o i m, f), i
+    (i, Idt_map (PMap.add o i m, f))
   | Idt_int -> fun i ->
-    Idt_int, i
+    (i, Idt_int)
 
 let idt_map_insert m e =
-  fst (idt_map_insert_idt m e)
+  snd (idt_map_insert_idt m e)
 
-let get_id : 'a.('a idt_map -> 'a -> idt option) = function
+let get_id (type a) : a idt_map -> a -> idt option = function
   | Idt_map (m, f) -> fun o ->
     (try Some (PMap.find o m)
      with Not_found -> None)
@@ -97,19 +100,18 @@ let get_id : 'a.('a idt_map -> 'a -> idt option) = function
 type 'a union_find =
   'a idt_map * (idt, idt) PMap.t
 
-let create_union_find = idt_map_create, PMap.empty
+let create_union_find _ = idt_map_create (), PMap.empty
 
 let create_union_find_idt = idt_idt_map_create, PMap.empty
 let create_union_find_int = create_union_find_idt
 
 let insert_idt (m, p) e =
-  let (m, i) =
+  let (i, m) =
     match get_id m e with
     | None ->
       idt_map_insert_idt m e
-    | Some i -> m, i
-  in
-  i, (m, PMap.add i i p)
+    | Some i -> (i, m)
+  in (i, (m, PMap.add i i p))
 
 let insert mp e =
   snd (insert_idt mp e)
@@ -131,8 +133,11 @@ let find_insert mp e =
   | None ->
     insert_idt mp e
 
-let merge mp e1 e2 =
+let merge_idt mp e1 e2 =
   let (i1, mp) = find_insert mp e1 in
   let (i2, (m, p)) = find_insert mp e2 in
-  m, PMap.add i1 i2 p
+  (m, PMap.add i1 i2 p)
+
+let merge mp e1 e2 =
+  snd (merge mp e1 e2)
 
