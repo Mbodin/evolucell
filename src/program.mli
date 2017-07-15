@@ -10,7 +10,7 @@ type register_type =
   | Type_integer (** Between 0 and max_integer **)
   | Type_direction (** Cardinal direction **)
   | Type_boolean (** A boolean **)
-  | Type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **)
+  | Type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **) (* TODO: This is not possible to infer in the type checking as-is *)
   | Type_variable of type_variable (** A type variable, mainly used during the type-checking. **)
 
 type direction =
@@ -27,7 +27,6 @@ type value = (** The type of program values **)
     of state_index (** Index of the state in the program array **)
     * value list (** Partically applied arguments **)
 
-(* LATER: Have a GADT at this stage with the type of expression, and only check types when compiling to this language. *)
 type expression =
   | Constant_integer of int (** Between 0 and max_integer included **)
   | Constant_direction of direction
@@ -91,7 +90,6 @@ type state =
   (string * string list) option (** Optional name for the state and its arguments. This is only useful when printing the program to keep meaningful names. **)
   * register_type array (** List of register arguments (indexed by their order in the array) **)
   * instruction (** The unique instruction of this state **)
-  * int (** Cost of the instruction (we could compute it from the instruction, but it is more efficient to compute it once and for all) **)
   * state_index (** Index of the next state in the program array **)
   * expression array (** Arguments of the next state **)
 
@@ -137,11 +135,11 @@ type typing_state =
 (** Merges the types in the current typing state. In case of an error, it returns the two incompatible types. **)
 val merge_types : typing_state -> register_type -> register_type -> (register_type * register_type, typing_state) Utils.plus
 
-(** Type check whether an expression is safe (returning its type), or returns the error if any. **)
-val type_check_expression : typing_state -> state_index (** The current state index **) -> expression -> (type_check_error, register_type * typing_state) Utils.plus
+(** Type check whether an expression is safe (returning its type), or returns an error with an expression which type checks. **)
+val type_check_expression : typing_state -> state_index (** The current state index **) -> expression -> typing_state * (type_check_error * expression, register_type) Utils.plus
 
-(** Type check whether a program is safe (returning None), or returns the error if any. **)
-val type_check : program -> type_check_error option
+(** Type check whether a program is safe (returning None), or returns an error with a program which type checks. **)
+val type_check : program -> (type_check_error * program) option
 
 (** Actions / side effects of a program **)
 type action =
