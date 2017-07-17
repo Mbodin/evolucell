@@ -2,6 +2,7 @@
 let max_integer = Particle.number - 1
 
 type type_variable = Utils.idt
+type type_state_variable = Utils.idt
 type state_index = int
 type register_index = int
 
@@ -9,8 +10,13 @@ type register_type =
   | Type_integer
   | Type_direction
   | Type_boolean
-  | Type_state of register_type list
+  | Type_fun_state of register_state_type
   | Type_variable of Utils.idt
+
+and register_state_type =
+  | Type_state
+  | Type_fun of register_type * register_state_type
+  | Type_state_variable of type_state_variable
 
 type direction =
   | N
@@ -192,37 +198,39 @@ type type_check_error =
 
 type typing_state =
   register_type array array
-  * type_variable Utils.union_find
-  * (Utils.idt, register_type) PMap.t
+  * (type_variable Utils.union_find
+    * (Utils.idt, register_type) PMap.t)
+  * (type_state_variable Utils.union_find
+    * (Utils.idt, register_state_type) PMap.t)
 
 let rec merge_types typing_state t1 t2 =
   match t1, t2 with
   | Type_integer, Type_integer
   | Type_direction, Type_direction
   | Type_boolean, Type_boolean -> Utils.Right typing_state
-  | Type_state l1, Type_state l2 ->
+  | Type_state l1, Type_state l2 -> (* TODO: Update *)
     if List.length l1 = List.length l2 then
       List.fold_left2 (fun r t1 t2 ->
         Utils.error_monad (fun typing_state ->
           merge_types typing_state t1 t2) r) (Utils.Right typing_state) l1 l2
     else Utils.Left (t1, t2)
   | Type_variable x1, Type_variable x2 ->
-    let (s, u, m) = typing_state in
+    let (s, (u, m), ums) = typing_state in
     let (i1, u) Utils.find_insert u x1 in
     let (i2, u) Utils.find_insert u x2 in
     let (i, u) = Utils.merge_idt u i1 i2 in
     (match PMap.find i1 m, PMap.find i2 m with
-     | Type_variable _, Type_variable _ -> Utils.Right (s, u, m)
+     | Type_variable _, Type_variable _ -> Utils.Right (s, (u, m), ums)
      | Type_variable x, t | t, Type_variable x ->
        Utils.Right (s, u, PMap.add i t m)
-     | t1, t2 -> merge_types (s, u, m) t1 t2)
+     | t1, t2 -> merge_types (s, (u, m), ums) t1 t2)
   | Type_variable x, t | t, Type_variable x ->
-    let (s, u, m) = typing_state in
+    let (s, (u, m), ums) = typing_state in
     let (i, u) Utils.find_insert u x in
     (match PMap.find i m with
      | Type_variable _ ->
-       Utils.Right (s, u, PMap.add i t m)
-     | t' -> merge_types (s, u, m) t t')
+       Utils.Right (s, (u, PMap.add i t m), ums)
+     | t' -> merge_types (s, (u, m), ums) t t')
   | _, _ -> Utils.Left (t1, t2)
 
 (* TODO: Update to the new type *)

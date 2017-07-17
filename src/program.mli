@@ -1,17 +1,23 @@
 
 (** The maximum integer that can be stored in a register. **)
-val max_integer (** = Particle.number - 1 **)
+val max_integer : int (** = Particle.number - 1 **)
 
 type type_variable (** The type of type variables **)
+type type_state_variable (** The type of type variables whose type is an application whose final result is a state **)
 type state_index (** The type of state indexes **)
 type register_index (** The type of register indexes **)
 
-type register_type =
+type register_type = (** The type of registers **)
   | Type_integer (** Between 0 and max_integer **)
   | Type_direction (** Cardinal direction **)
   | Type_boolean (** A boolean **)
-  | Type_state of register_type list (** A state, which can be called later on. The state can be partially applied: the list corresponds to the yet unapplied arguments. **) (* TODO: This is not possible to infer in the type checking as-is *)
+  | Type_fun_state of register_state_type (** The type of a state (wich may take some paramters) **)
   | Type_variable of type_variable (** A type variable, mainly used during the type-checking. **)
+
+and register_state_type = (** Some registers have are states (with parameters), here follows their type **)
+  | Type_state (** The type of a fully applied state **)
+  | Type_fun of register_type * register_state_type (** The type of a state with an argument **)
+  | Type_state_variable of type_state_variable (** A type variable, which can only be instanciated by a state-type **)
 
 type direction =
   | N (** North **)
@@ -129,8 +135,10 @@ type type_check_error =
 (** The current global state of the typing process **)
 type typing_state =
   register_type array array (** The types of the arguments of each state **)
-  * type_variable Utils.union_find (** Each variable is associated to a type identifier, and these identifiers can be merged. **)
-  * (Utils.idt, register_type) PMap.t (** Each representant of type identifier (that is, the potential results of Utils.find on the previous structure) are associated a type. **)
+  * (type_variable Utils.union_find (** Each variable is associated to a type identifier, and these identifiers can be merged. **)
+    * (Utils.idt, register_type) PMap.t) (** Each representant of type identifier (that is, the potential results of Utils.find on the previous structure) are associated a type. **)
+  * (type_state_variable Utils.union_find (** The same as type variables, but for state types **)
+    * (Utils.idt, register_state_type) PMap.t)
 
 (** Merges the types in the current typing state. In case of an error, it returns the two incompatible types. **)
 val merge_types : typing_state -> register_type -> register_type -> (register_type * register_type, typing_state) Utils.plus
