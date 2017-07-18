@@ -132,19 +132,34 @@ type type_check_error =
     of state_index (** Index of the calling state **)
     * register_type * register_type (** The two incompatible types **)
 
+(** A structure to type programs. It associates each variable to its inferred type. **)
+type ('var, 't) type_map =
+  'var Utils.union_find (** Each variable is associated to a type identifier, and these identifiers can be merged. **)
+  * (Utils.idt, 't) PMap.t (** Each representant of type identifier (that is, the potential results of Utils.find on the previous structure) are associated a type. **)
+
+(** Two aliases of the type. **)
+type variable_type_map = (type_variable, register_type) type_map
+type variable_state_type_map = (type_state_variable, register_state_type) type_map
+
+(** Add a variable to the typing state, associating it to itself. **)
+val add_variable : type_variable -> variable_type_map -> variable_type_map
+val add_state_variable : type_state_variable -> variable_state_type_map -> variable_state_type_map
+
 (** The current global state of the typing process **)
 type typing_state =
   register_type array array (** The types of the arguments of each state **)
-  * (type_variable Utils.union_find (** Each variable is associated to a type identifier, and these identifiers can be merged. **)
-    * (Utils.idt, register_type) PMap.t) (** Each representant of type identifier (that is, the potential results of Utils.find on the previous structure) are associated a type. **)
-  * (type_state_variable Utils.union_find (** The same as type variables, but for state types **)
-    * (Utils.idt, register_state_type) PMap.t)
+  * variable_type_map (** Type map for variables **)
+  * variable_state_type_map (** Type map for type variables **)
+
+(** Initialises the typing state, associating each type variable to itself. **)
+(* FIXME: Is this really what its signature should be? *)
+val init_typing_state : type_variable list -> type_state_variable list -> typing_state
 
 (** Merges the types in the current typing state. In case of an error, it returns the two incompatible types. **)
 val merge_types : typing_state -> register_type -> register_type -> (register_type * register_type, typing_state) Utils.plus
 
-(** Type check whether an expression is safe (returning its type), or returns an error with an expression which type checks. **)
-val type_check_expression : typing_state -> state_index (** The current state index **) -> expression -> typing_state * (type_check_error * expression, register_type) Utils.plus
+(** Type check an expression (returning its type), or returns an error with an expression which type checks if possible. **)
+val type_check_expression : typing_state -> state_index (** The current state index **) -> expression -> (type_check_error * (typing_state * expression * register_type) option, typing_state * register_type) Utils.plus
 
 (** Type check whether a program is safe (returning None), or returns an error with a program which type checks. **)
 val type_check : program -> (type_check_error * program) option

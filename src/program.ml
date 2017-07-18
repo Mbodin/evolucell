@@ -196,19 +196,33 @@ type type_check_error =
     * register_type
   | Invalid_state_index of state_index
 
+type ('var, 't) type_map =
+  'var Utils.union_find
+  * (Utils.idt, 't) PMap.t
+
+type variable_type_map = (type_variable, register_type) type_map
+type variable_state_type_map = (type_state_variable, register_state_type) type_map
+
+let add_variable x (u, m) =
+  let (i, u) = Utils.insert_idt u x in
+  (u, PMap.add i (Type_variable i))
+
+let add_state_variable x (u, m) =
+  let (i, u) = Utils.insert_idt u x in
+  (u, PMap.add i (Type_state_variable i))
+
 type typing_state =
   register_type array array
-  * (type_variable Utils.union_find
-    * (Utils.idt, register_type) PMap.t)
-  * (type_state_variable Utils.union_find
-    * (Utils.idt, register_state_type) PMap.t)
+  * variable_type_map
+  * variable_state_type_map
 
 let rec merge_types typing_state t1 t2 =
   match t1, t2 with
   | Type_integer, Type_integer
   | Type_direction, Type_direction
   | Type_boolean, Type_boolean -> Utils.Right typing_state
-  | Type_state l1, Type_state l2 -> (* TODO: Update *)
+  (* TODO: Update *)
+  | Type_state l1, Type_state l2 ->
     if List.length l1 = List.length l2 then
       List.fold_left2 (fun r t1 t2 ->
         Utils.error_monad (fun typing_state ->
@@ -233,7 +247,9 @@ let rec merge_types typing_state t1 t2 =
      | t' -> merge_types (s, (u, m), ums) t t')
   | _, _ -> Utils.Left (t1, t2)
 
-(* TODO: Update to the new type *)
+(* TODO: Update to the new type
+val type_check_expression : typing_state -> state_index (** The current state index **) -> expression -> (type_check_error * (typing_state * expression * register_type) option, typing_state * register_type) Utils.plus
+*)
 let rec type_check_expression typing_state current = function
   | Constant_integer _ ->
     Utils.Right (Type_integer, typing_state)
@@ -245,7 +261,7 @@ let rec type_check_expression typing_state current = function
     Utils.Right (Type_state (Array.to_list (fst typing_state).(i)), typing_state)
   | Register i ->
     if i < 0 or i >= Array.length registers then
-      Utils.Left (Invalid_argument_index (current, Array.length states.(current), i))
+      Utils.Left (Invalid_argument_index (current, Array.length states.(current), i), None)
     else Utils.Right ((fst typing_state).(current).(i), typing_state)
 
   | My_energy
@@ -254,6 +270,8 @@ let rec type_check_expression typing_state current = function
   | Has_nutrients ->
     Utils.Right (Type_boolean, typing_state)
   | Has_particle (e1, e2) ->
+    let typing_state0 = typing_state in
+    (* TODO: This error monad has to be changed: the expression-in-case-of-an-error needs to be updated! *)
     error_monad (type_check_expression typing_state current e1) (fun (t1, typing_state) ->
       error_monad (type_check_expression typing_state current e2) (fun (t2, typing_state) ->
         let merge =
@@ -261,24 +279,26 @@ let rec type_check_expression typing_state current = function
             merge_types typing_state t2 Type_integer) in
         match r with
         | Utils.Left (t1, t2) ->
-          Utils.Left (Incompatible_types (current, t1, t2))
+          Utils.Left (Incompatible_types (current, t1, t2), Some (typing_state0, Random_boolean, Type_boolean))
         | Utils.Right typing_state -> Utils.Right (Type_boolean, typing_state)))
   | Has_particles ->
     Utils.Right (Type_boolean, typing_state)
   | Cell_empty e
   | Cell_creature e
   | Cell_obstacle e ->
+    let typing_state0 = typing_state in
+    (* TODO: This error monad has to be changed: the expression-in-case-of-an-error needs to be updated! *)
     error_monad (type_check_expression typing_state current e) (fun (t, typing_state) ->
       match merge_types typing_state t Type_direction with
       | Utils.Left (t1, t2) ->
-        Utils.Left (Incompatible_types (current, t1, t2))
+        Utils.Left (Incompatible_types (current, t1, t2), Some (typing_state0, Random_boolean, Type_boolean))
       | Utils.Right typing_state -> Utils.Right (Type_boolean, typing_state))
 
   | Random e ->
     error_monad (type_check_expression typing_state current e) (fun (t, typing_state) ->
       match merge_types typing_state t Type_integer with
       | Utils.Left (t1, t2) ->
-        Utils.Left (Incompatible_types (current, t1, t2))
+        Utils.Left (Incompatible_types (current, t1, t2), Some (typing_state0, Constant_integer 0, Type_integer))
       | Utils.Right typing_state -> Utils.Right (Type_integer, typing_state))
   | Random_direction ->
     Utils.Right (Type_direction, typing_state)
