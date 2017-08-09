@@ -1,5 +1,5 @@
 
-expression half = 500 (* Used to differentiate between positive and negative values. *)
+let half = 500 (* Used to differentiate between positive and negative values. *)
 (* In this file, “positive” means to be less than the value half; “negative” means to be more, and the represented value is then max_integer - value. *)
 
 (* This state tries to move the cell to the x y coordinates (x poiting to the east and y to the north, as usual, coordinates are expressed with the current cell as origin; these coordinates are not supposed positive), then execute the state after. Note that this state will loop forever if the target is occupied or if there is not path from the current position to it. There also are some pathological configurations in which the cell will infinitely loop (in which the right hand path loops back to an already seen cell), but I beleive them to be very rare and not worth trying to take into account in oprder to keep the code simple. *)

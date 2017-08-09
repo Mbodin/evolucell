@@ -230,8 +230,8 @@ let rec merge_types typing_state t1 t2 =
     else Utils.Left (t1, t2)
   | Type_variable x1, Type_variable x2 ->
     let (s, (u, m), ums) = typing_state in
-    let (i1, u) Utils.find_insert u x1 in
-    let (i2, u) Utils.find_insert u x2 in
+    let (i1, u) = Utils.find_insert u x1 in
+    let (i2, u) = Utils.find_insert u x2 in
     let (i, u) = Utils.merge_idt u i1 i2 in
     (match PMap.find i1 m, PMap.find i2 m with
      | Type_variable _, Type_variable _ -> Utils.Right (s, (u, m), ums)
@@ -240,7 +240,7 @@ let rec merge_types typing_state t1 t2 =
      | t1, t2 -> merge_types (s, (u, m), ums) t1 t2)
   | Type_variable x, t | t, Type_variable x ->
     let (s, (u, m), ums) = typing_state in
-    let (i, u) Utils.find_insert u x in
+    let (i, u) = Utils.find_insert u x in
     (match PMap.find i m with
      | Type_variable _ ->
        Utils.Right (s, (u, PMap.add i t m), ums)

@@ -1,12 +1,12 @@
 
-expression p = 42 (* Light sensitive particle; it should move every two steps. *)
-expression particleCost = 7 (* Cost to emit a particle. *)
-expression particleGain = 3 (* Energy gain when absorbing a particle. *)
+let p = 42 (* Light sensitive particle; it should move every two steps. *)
+let particleCost = 7 (* Cost to emit a particle. *)
+let particleGain = 3 (* Energy gain when absorbing a particle. *)
 
-expression numberOfParticle = 3 (* Number of particles we create to check that a particular spot may have light. *)
-expression distanceToMove = 5 (* Distance to move when looking for an appropriate spot. *)
+let numberOfParticle = 3 (* Number of particles we create to check that a particular spot may have light. *)
+let distanceToMove = 5 (* Distance to move when looking for an appropriate spot. *)
 
-expression liveParticle = 10 (* Number of particle we create at each turn when we have found a spot. *)
+let liveParticle = 10 (* Number of particle we create at each turn when we have found a spot. *)
 
 let start = findSource N
 

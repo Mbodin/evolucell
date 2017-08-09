@@ -113,6 +113,7 @@ val expression_cost : expression -> int (** Returns the cost of the expression. 
 
 val instruction_cost : instruction -> int (** Returns the cost of the instruction. **)
 
+(** Possible type check errors. **)
 type type_check_error =
   | Invalid_argument_index
     of state_index (** Index of the calling state **)
@@ -160,6 +161,9 @@ val merge_types : typing_state -> register_type -> register_type -> (register_ty
 
 (** Type check an expression (returning its type), or returns an error with an expression which type checks if possible. **)
 val type_check_expression : typing_state -> state_index (** The current state index **) -> expression -> (type_check_error * (typing_state * expression * register_type) option, typing_state * register_type) Utils.plus
+
+(** Type check an instruction (whose type should be state), or returns an error with an instruction which type checks if possible. **)
+val type_check_instruction : typing_state -> state_index (** The current state index **) -> instruction -> (type_check_error * (typing_state * instruction) option, typing_state) Utils.plus
 
 (** Type check whether a program is safe (returning None), or returns an error with a program which type checks. **)
 val type_check : program -> (type_check_error * program) option
