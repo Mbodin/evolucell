@@ -4,8 +4,8 @@ let _ = Random.self_init ()
 let id x = x
 
 let option_map f = function
-  | None -> None
   | Some x -> Some (f x)
+  | None -> None
 
 let if_option = function
   | None -> fun _ -> None
@@ -49,7 +49,6 @@ let select l =
 let select_any l =
   List.nth l (Random.int (List.length l))
 
-
 let sum = List.fold_left (+) 0
 let array_sum = Array.fold_left (+) 0
 
@@ -65,6 +64,8 @@ let new_id_function () =
     !current
 
 let new_id = new_id_function ()
+
+let idt_to_array = id
 
 
 type _ idt_map =
@@ -136,8 +137,39 @@ let find_insert mp e =
 let merge_idt mp e1 e2 =
   let (i1, mp) = find_insert mp e1 in
   let (i2, (m, p)) = find_insert mp e2 in
-  (m, PMap.add i1 i2 p)
+  (i2, (m, PMap.add i1 i2 p))
 
 let merge mp e1 e2 =
-  snd (merge mp e1 e2)
+  snd (merge_idt mp e1 e2)
+
+
+type 'a two_direction_list = 'a list * 'a list
+(** (ll, lr) represents the list ll @ List.rev lr. **)
+
+let two_direction_list_from_list l = (l, [])
+let two_direction_list_to_list (ll, lr) = ll @ List.rev lr
+
+let two_direction_list_is_empty = function
+  | ([], []) -> true
+  | _ -> false
+
+let add_left e (ll, lr) = (e :: ll, lr)
+let add_right (ll, lr) e = (ll, e :: lr)
+
+let match_left = function
+  | (e :: ll, lr) -> Some (e, (ll, lr))
+  | ([], lr) ->
+    match List.rev lr with
+    | [] -> None
+    | e :: ll -> Some (e, (ll, []))
+
+let match_right = function
+  | (ll, e :: lr) -> Some ((ll, lr), e)
+  | (ll, []) ->
+    match List.rev ll with
+    | [] -> None
+    | e :: lr -> Some (([], lr), e)
+
+let for_all p (ll, lr) =
+  List.for_all p ll && List.for_all p lr
 
