@@ -8,7 +8,7 @@ else
 fi
 
 # Compile to bytecode
-ocamlbuild -I src -pkg extlib $TARGET
+ocamlbuild -use-menhir -menhir "menhir --explain" -I src -pkg extlib $TARGET
 
 # Translate to JavaScript
 

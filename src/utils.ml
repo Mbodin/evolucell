@@ -46,6 +46,9 @@ let select l =
         else search (t - p) l
     in search (Random.int s) l
 
+let rand min max =
+  min + Random.int (max - min + 1)
+
 let select_any l =
   List.nth l (Random.int (List.length l))
 
