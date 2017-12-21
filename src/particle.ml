@@ -1,5 +1,4 @@
 
-(** Number of different particles in the game. **)
 let number = 1000
 
 (** The particle properties are defined by the following arrays, each tracking a specific aspect of the particle. The following lines declare these arrays, but do not fill them yet. **)
@@ -217,7 +216,6 @@ let _ =
   done
 
 
-(** Type of a given particle released in the field. **)
 type t =
   int
   * (int * int)

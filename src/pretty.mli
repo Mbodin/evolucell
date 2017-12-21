@@ -35,16 +35,16 @@ val type_check_statement : typing_state -> state_index (** The current state ind
 (** Type check whether a program is safe (returning the typed program), or returns the error if any. **)
 val type_check : t -> (type_check_error, t) Utils.plus
 
-(** Converts a pretty-program to a traditionnal one. **)
+(** Converts a pretty-program to a traditional one. **)
 val convert_from : t -> Program.program
 
-(** Converts a traditionnal to a pretty-program, limiting its number of state if possible. **)
+(** Converts a traditional to a pretty-program, limiting its number of state if possible. **)
 val convert_to : Program.program -> t
 
-(** Converts a traditionnal to a pretty-program, without any optimisation. The number of resulting state may be high. **)
+(** Converts a traditional to a pretty-program, without any optimisation. The number of resulting state may be high. **)
 val direct_translation : Program.program -> t
 
-(** Fill out all optionnal state names of a program to make sure that all of them have a distinct name. **)
+(** Fill out all optional state names of a program to make sure that all of them have a distinct name. **)
 val name : t -> t
 
 (** Converts to a list of string, one for each line (which is easier to print and to deal with indentation than a string). **)

@@ -26,6 +26,9 @@ val unfold : ('a -> ('b * 'a) option) -> 'a -> 'b list
 (** Builds the list of nth first elements, from 0 to n - 1. **)
 val seq : int -> int list
 
+(** Returns the positive modulo. **)
+val positive_mod : int -> int -> int
+
 (** Returns a random number between its two arguments, included. **)
 val rand : int -> int -> int
 
@@ -48,6 +51,9 @@ val array_sum : int array -> int
 
 (** Indicates how many elements of the array satisfy the predicates. **)
 val array_count : ('a -> bool) -> 'a array -> int
+
+(** Indicates whether all the elements of the array satisfies the predicate. **)
+val array_for_all : ('a -> bool) -> 'a array -> bool
 
 
 (** A type for identifiers. Integers are used internally, but hiding this fact in the signature helps preventing mistakes. **)

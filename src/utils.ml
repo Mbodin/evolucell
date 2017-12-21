@@ -32,6 +32,9 @@ let seq i =
     if i = j then None
     else Some (j, j + 1)) 0
 
+let positive_mod a b =
+  ((a mod b) + b) mod b
+
 exception NegativeWeigth
 exception InternalError
 
@@ -56,6 +59,7 @@ let sum = List.fold_left (+) 0
 let array_sum = Array.fold_left (+) 0
 
 let array_count f = Array.fold_left (fun v x -> v + if f x then 1 else 0) 0
+let array_for_all f = Array.fold_left (fun v x -> v && f x) true
 
 
 type idt = int
