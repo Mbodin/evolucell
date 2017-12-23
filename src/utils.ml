@@ -32,7 +32,15 @@ let seq i =
     if i = j then None
     else Some (j, j + 1)) 0
 
+let uniq l =
+  let rec aux = function
+    | a :: b :: l when a = b -> aux (b :: l)
+    | a :: l -> a :: aux l
+    | [] -> [] in
+  aux (List.sort compare l)
+
 let positive_mod a b =
+
   ((a mod b) + b) mod b
 
 exception NegativeWeigth

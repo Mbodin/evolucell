@@ -26,6 +26,9 @@ val unfold : ('a -> ('b * 'a) option) -> 'a -> 'b list
 (** Builds the list of nth first elements, from 0 to n - 1. **)
 val seq : int -> int list
 
+(** Sorts and remove all duplicated element from the given list. **)
+val uniq : 'a list -> 'a list
+
 (** Returns the positive modulo. **)
 val positive_mod : int -> int -> int
 
