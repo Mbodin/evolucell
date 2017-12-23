@@ -32,17 +32,17 @@ type 'a static_canvas
 (** Reads the static canvas. The coordinates have to be in bounds. **)
 val read_static : 'a static_canvas -> int -> int -> 'a
 
-(** Writes the static canvas. The coordinates have to be in bounds. **)
-val write_static : 'a static_canvas -> int -> int -> 'a -> 'a static_canvas
+(** Non-functionally writes the static canvas. The coordinates have to be in bounds. **)
+val write_static : 'a static_canvas -> int -> int -> 'a -> unit
 
 (** Returns the size of the static canvas. **)
 val static_size : 'a static_canvas -> int * int
 
 (** Maps the given canvas. **)
-val canvas_static_map : ('a -> 'b) -> 'a static_canvas -> 'b static_canvas
+val static_canvas_map : ('a -> 'b) -> 'a static_canvas -> 'b static_canvas
 
 (** Maps the given canvas, but getting the coordinate information. **)
-val canvas_static_mapi : (int -> int -> 'a -> 'b) -> 'a static_canvas -> 'b static_canvas
+val static_canvas_mapi : (int -> int -> 'a -> 'b) -> 'a static_canvas -> 'b static_canvas
 
 (** Make the given static canvas a canvas with option values. **)
 val make_static_option : 'a static_canvas -> 'a option static_canvas
@@ -50,11 +50,11 @@ val make_static_option : 'a static_canvas -> 'a option static_canvas
 (** Remove the optional values of the given canvas, calling the function to fill up the None case. **)
 val concretize_unknown : (int -> int -> 'a) -> 'a option static_canvas -> 'a static_canvas
 
-(** Applies a subcanvas into a larger one, from the given coordinates and using the given merging function. **)
-val apply : ('a -> 'b -> 'a) -> 'a static_canvas -> int -> int -> 'b static_canvas -> 'a static_canvas
+(** Applies a subcanvas into a larger one, from the given coordinates and using the given merging function. It changes the first canvas. **)
+val apply : ('a -> 'b -> 'a) -> 'a static_canvas -> int -> int -> 'b static_canvas -> unit
 
-(** A frequent usage of the previous function, with option type (None having low priority). **)
-val apply_option : ('a -> 'a -> 'a) -> 'a option static_canvas -> int -> int -> 'a option static_canvas -> 'a option static_canvas
+(** A frequent usage of the previous function, with option type (None having low priority). It changes the first canvas. **)
+val apply_option : ('a -> 'a -> 'a) -> 'a option static_canvas -> int -> int -> 'a option static_canvas -> unit
 
 (** Indicates whether the given second canvas can be applied in the given coordinates in the first without two non-None value being overlaid. **)
 val compatible : 'a option static_canvas -> int -> int -> 'b option static_canvas -> bool
@@ -65,8 +65,8 @@ val crop_static : 'a static_canvas -> int -> int -> int -> int -> 'a static_canv
 (** Generates a static canvas of the given size using the following initialising function. **)
 val generate_static : int -> int -> (int -> int -> 'a) -> 'a static_canvas
 
-(** Converts a static canvas to a dynamic one. **)
-val static_canvas_canvas : 'a static_canvas -> 'a canvas
+(** Converts a static canvas to a dynamic one. It takes the new default as argument. **)
+val static_canvas_canvas : 'a static_canvas -> 'a -> 'a canvas
 
 (** Converts a dynamic canvas to a static one. **)
 val canvas_static_canvas : 'a canvas -> 'a static_canvas
@@ -99,7 +99,7 @@ val circle_static : int -> 'a -> 'a -> 'a static_canvas
 val canvas_easy_to_avoid_north : bool canvas -> bool
 
 (** Generates all the n-minos (dominos, triomonis, tetraminos, etc.) of the given size. Symetries are not taken into account. **)
-val n_minos : int -> bool canvas
+val n_minos : int -> bool canvas list
 
 (* TODO
 (** This functions takes the provided pieces and randomly fills in the given canvas with them. The only constraint is that no two non-None values are overlaid. The pieces are not turned. There still may be some unfilled space at the end. **)
