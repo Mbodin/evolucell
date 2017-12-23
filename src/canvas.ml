@@ -99,7 +99,7 @@ let circle_static xy v_extern v_intern =
       if Utils.square (x - xy / 2) + Utils.square (y - xy / 2)
          <= Utils.square (xy / 2) then v_intern else v_extern
      else fun x y ->
-      if Utils.square (2 * x - xy - 1) + Utils.square (2 * y - xy - 1)
+      if Utils.square (2 * x - xy + 1) + Utils.square (2 * y - xy + 1)
          <= 1 + Utils.square (xy - 1) then v_intern else v_extern)
 
 let rec crop_static c x1 y1 x2 y2 =
@@ -242,6 +242,9 @@ let _ = (* For tests *)
   let l = List.map canvas_static_canvas (n_minos 3) in
   List.iter (fun c ->
     print_static_canvas c (fun b -> print_char (if b then '#' else '.')) ;
-    print_newline ()) l
+    print_newline ()) l ;
+  print_newline () ;
+  let c = circle_static 20 true false in
+  print_static_canvas c (fun b -> print_char (if b then '#' else '.'))
 
 
