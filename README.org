@@ -1,0 +1,19 @@
+
+Evolucell is a little programming game designed for both for people who never programmed and for more experienced people.
+
+This game is under development.
+
+In this game, players programs little creatures. They can then explore and evolve in their world.
+
+The game is designed to make an “almost right” solution to be accepted when possible.
+I hope that this shall limit the frustration sometimes associated with programming, in which a simple off-by-one mistakes makes the whole program crashes.
+
+Here are some of the game elements helping to get this experience:
+- The state of a creature is simple. No orientation or complex to assimilate elements.
+- Creatures start with plenty of life and energy, which enables new players to just ignore these concerns.
+- Players are never asked to move their creature to a specific place, but instead *near* a specific place. In particular, players are asked to produce /particles/ which randomly move around the player: the goal is usually that at least one particle reach the target destination, not the player. As a consequence, players don’t have to be extremely precise when they program the moves of their creature.
+- Some particles introduce mutations: when a mutated creature clones itself, its “clone” is not exactly the same. These mutations can be code optimisation or refactoring, but also random changes. In any way, the mutated code should have similar behaviours than the original one. The player can choose how much mutation they want to play with, enabling new players to choose relatively high levels of mutations to let the creatures randomly solve themselves the goal (if the player got close enough).
+- The compiler is associated with a helper tool, which suggests some changes when the program is not syntactically valid or does not follow some usual style (which suggests that the player is not comfortable with the language).
+- The programming language is more or less functional and typed. This avoids users to have to deal with variable whose value change, which can be difficult for newcomers. The notion of sequence (move left, then move up) is however present as it follows a simple and strong intuition.
+- When the type-checker gets an error, it shows why it has inferred a given type instead of showing a type error. An example of output of the type-checker would be: “This constant value is of type integer, which means that you can use operations such as ’+’ or ‘*’ in it. It is passed as argument ’x’ of the function ’f’ at line xx, which passed it as argument ’y’ to ‘g’ in line xx. Then the function ’g’ uses ‘y’ as if it was a boolean in ‘if y then’ line xx. You probably meant to use it as an integer in ’g’ (for instance by writing ’if y = 0 then’ instead) or to provide a boolean as argument ‘x’ of the function ‘f’ instead of an integer.”
+
