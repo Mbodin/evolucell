@@ -3,6 +3,7 @@ type coordinate = Particle.coordinate
 
 type entity =
   | Creature of coordinate * Program.program_state
+  | SpecialCreature of coordinate * (unit -> TODO)
   | Particle of Particle.t
   | Nutrient of int * int
 

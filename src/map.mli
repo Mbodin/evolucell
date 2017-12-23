@@ -9,8 +9,9 @@ type coordinate = Particle.coordinate
 
 (** The type entity records all the movable components of the map. **)
 type entity =
-  | Creature of coordinate * program_state
-  | Particle of Particle.t
+  | Creature of coordinate * program_state (** Normal creatures **)
+  | SpecialCreature of coordinate * (unit -> TODO (same TODO than execute below)) (** Scripted creatures **)
+  | Particle of Particle.t (** Particules **)
   | Nutrient of int (** Energy currently available in the nutrient **) * int (** Additional energy that may be converted into a directly usuable one using particles. **)
 
 (** Get the cell at this coordinate in the map. **)
