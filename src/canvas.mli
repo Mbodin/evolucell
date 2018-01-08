@@ -26,7 +26,7 @@ val rectangle_canvas : int -> int -> 'a -> 'a canvas
 (** Change the default element used for out of bounds reads. **)
 val change_default_canvas : 'a canvas -> 'a -> 'a canvas
 
-(** The following canvas doesn’t resize itself, but is faster to use. **)
+(** The following canvas doesn’t resize itself, but is faster to use. It is imperative-based. **)
 type 'a static_canvas
 
 (** Reads the static canvas. The coordinates have to be in bounds. **)
@@ -34,6 +34,9 @@ val read_static : 'a static_canvas -> int -> int -> 'a
 
 (** Non-functionally writes the static canvas. The coordinates have to be in bounds. **)
 val write_static : 'a static_canvas -> int -> int -> 'a -> unit
+
+(** State whether a given coordinate is valid for the given canvas. **)
+val bounds_static : 'a static_canvas -> int -> int -> bool
 
 (** Returns the size of the static canvas. **)
 val static_size : 'a static_canvas -> int * int
@@ -59,8 +62,17 @@ val apply_option : ('a -> 'a -> 'a) -> 'a option static_canvas -> int -> int -> 
 (** Indicates whether the given second canvas can be applied in the given coordinates in the first without two non-None value being overlaid. **)
 val compatible : 'a option static_canvas -> int -> int -> 'b option static_canvas -> bool
 
+(** Same as compatible, but actually does the application if they are compatible. **)
+val apply_compatible : 'a option static_canvas -> int -> int -> 'a option static_canvas -> bool
+
 (** Crops the given static canvas to the given coordinates. These coordinates must fit the initial canvas. **)
 val crop_static : 'a static_canvas -> int -> int -> int -> int -> 'a static_canvas
+
+(** Creates a new static canvas identical to the initial one, but with an added border of the given size and filling. **)
+val add_border : 'a static_canvas -> int -> 'a -> 'a static_canvas
+
+(** All the cells whose neighbourhood (the boolean indicates whether diagonals should be considered) is recognised by the given function that are not themselves recognised by the function are set to the given value. **)
+val extend_neighbours : 'a static_canvas -> bool -> ('a -> bool) -> 'a -> unit
 
 (** Generates a static canvas of the given size using the following initialising function. **)
 val generate_static : int -> int -> (int -> int -> 'a) -> 'a static_canvas
@@ -101,6 +113,15 @@ val canvas_easy_to_avoid_north : bool canvas -> bool
 (** Generates all the n-minos (dominos, triomonis, tetraminos, etc.) of the given size. Symetries are not taken into account. **)
 val n_minos : int -> bool canvas list
 
+(** Generates a random gilder. **)
+val gilder : unit -> bool static_canvas
+
+(** Places the given second canvas in a random position in the first. Both canvas are placed in a compatible way. If the function did not succeed to place it, it returns false. **)
+val place_canvas : 'a option static_canvas -> 'a option static_canvas -> bool
+
+(** Randomly places a list of canvas. **)
+val place_canvas_list : 'a option static_canvas -> 'a option static_canvas list -> unit
+
 (* TODO
 (** This functions takes the provided pieces and randomly fills in the given canvas with them. The only constraint is that no two non-None values are overlaid. The pieces are not turned. There still may be some unfilled space at the end. **)
 val fill_static_canvas_with : 'a option static_canvas -> 'a option static_canvas list -> 'a option static_canvas
@@ -109,6 +130,6 @@ val fill_static_canvas_with : 'a option static_canvas -> 'a option static_canvas
 (** Create a maze of the given size. **)
 val maze : int -> int -> bool static_canvas
 
-(** From an already defined static canvas and a list of starting points, fills the canvas with a maze. The first given value is the value for paths and the second for walls. **)
-val mazify : 'a static_canvas -> 'a -> 'a -> (int * int) list -> 'a static_canvas
+(** From an already defined static canvas and a list of starting points, fills the canvas with a maze. The first given value is the value for paths to be dug and the second for walls. **)
+val mazify : 'a static_canvas -> 'a -> 'a -> (int * int) list -> unit
 

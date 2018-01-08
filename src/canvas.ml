@@ -61,6 +61,11 @@ let read_static c x y = c.(x).(y)
 
 let write_static c x y v = c.(x).(y) <- v
 
+let bounds_static c x y =
+  if x >= 0 && x < Array.length c then
+    y >= 0 && y < Array.length (c.(x))
+  else false
+
 let static_size c =
   (Array.length c, if Array.length c = 0 then 0 else Array.length (c.(0)))
 
@@ -69,7 +74,7 @@ let apply merge c x y d =
     for iy = 0 to Array.length (d.(ix)) - 1 do
       let x = ix + x in
       let y = iy + y in
-      if x <= 0 && x < Array.length c && y <= 0 && y < Array.length c then
+      if bounds_static c x y then
         write_static c x y (merge (c.(x).(y)) (d.(ix).(iy)))
     done
   done
@@ -93,7 +98,7 @@ let generate_static x y f =
   done ;
   c
 
-let circle_static xy v_extern v_intern =
+let circle_static xy v_intern v_extern =
   generate_static xy xy
     (if xy mod 2 = 1 then fun x y ->
       if Utils.square (x - xy / 2) + Utils.square (y - xy / 2)
@@ -155,6 +160,60 @@ let concretize_unknown f =
     | None -> f x y
     | Some v -> v)
 
+let compatible c x y d =
+  List.for_all (fun ix ->
+   List.for_all (fun iy ->
+      let x = ix + x in
+      let y = iy + y in
+      if bounds_static c x y then
+        read_static c x y = None || read_static d ix iy = None
+      else true)
+    (Utils.seq (Array.length (d.(ix)))))
+  (Utils.seq (Array.length d))
+
+let add_border c s f =
+  let (cx, cy) = static_size c in
+  let r = rectangle_static (cx + 2 * s) (cy + 2 * s) f in
+  apply (fun _ v -> v) r s s c ;
+  r
+
+let extend_neighbours c diag f v =
+  let (sx, sy) = static_size c in
+  let f v' = v' = v || f v' in
+  let f (x, y) = f (read_static c x y) in
+  let neighbours x y =
+    let ok (x, y) =
+      x >= 0 && x < sx && y >= 0 && y < sy in
+    List.filter ok [(x + 1, y) ; (x - 1, y) ; (x, y + 1) ; (x, y - 1)]
+    @ if diag then
+        List.filter ok [(x + 1, y + 1) ; (x - 1, y + 1) ; (x + 1, y - 1) ; (x - 1, y - 1)]
+      else [] in
+  List.iter (fun x ->
+   List.iter (fun y ->
+     if List.exists f (neighbours x y) then
+       if not (f (x, y)) then
+         write_static c x y v)
+    (Utils.seq sy))
+  (Utils.seq sx)
+
+let apply_compatible c x y d =
+  if compatible c x y d then (
+    apply_option (fun _ _ -> assert false) c x y d ;
+    true
+  ) else false
+
+let place_canvas c sc =
+  let (cx, cy) = static_size c in
+  let (scx, scy) = static_size sc in
+  if scx > cx || scy > cy then false
+  else
+    let x = Utils.rand 0 (cx - scx) in
+    let y = Utils.rand 0 (cy - scy) in
+    apply_compatible c x y sc
+
+let place_canvas_list c =
+  List.iter (fun sc -> ignore (place_canvas c sc))
+
 let mazify c v_path v_wall =
   let (sx, sy) = static_size c in
   let neighbours x y =
@@ -180,7 +239,7 @@ let mazify c v_path v_wall =
       let (x', y') = Utils.select_any n in
       write_static c ((x + x') / 2) ((y + y') / 2) v_path in
   let rec aux l =
-    if l = [] then c
+    if l = [] then ()
     else
       let ((x, y), l) = Utils.take_any l in
       aux (if read_static c x y = v_path then l
@@ -190,9 +249,76 @@ let mazify c v_path v_wall =
              path x y (Utils.rand 2 7) @ l))
   in aux
 
+let gilder _ =
+  let gilder = [|
+      [| false ; false ; true |] ;
+      [| true ; false ; true |] ;
+      [| false ; true ; true |]
+    |] in
+  if Random.bool () then gilder
+  else
+    let gilder =
+      if Random.bool () then gilder
+      else flip_vertically_static gilder in
+    let gilder =
+      if Random.bool () then gilder
+      else flip_horizontally_static gilder in
+    gilder
+
+let maze_room _ =
+  let room =
+    match Random.int 2 with
+    | 0 ->
+      let s = Utils.rand 3 12 in
+      rectangle_static s s None
+    | 1 ->
+      let s = Utils.rand 3 12 in
+      circle_static s None (Some true)
+    | _ -> assert false in
+  let (x, y) = static_size room in
+  let decoration =
+    match Random.int 4 with
+    | 0 ->
+      let s = Utils.rand 0 4 in
+      let s =
+        if s mod 2 <> x mod 2 then
+          Utils.rand 0 3
+        else s in
+      rectangle_static s s (Some true)
+    | 1 ->
+      let s = Utils.rand 1 4 in
+      let s =
+        if s mod 2 <> x mod 2 then
+          Utils.rand 1 5
+        else s in
+      circle_static s (Some true) None
+    | 2 ->
+      static_canvas_map (fun b -> if b then Some true else None)
+        (canvas_static_canvas (Utils.select_any (n_minos (Utils.rand 3 5))))
+    | 3 ->
+      static_canvas_map (fun b -> if b then Some true else None) (gilder ())
+    | _ -> assert false in
+  let decoration = add_border decoration 1 None in
+  extend_neighbours decoration true ((<>) None) (Some false) ;
+  let (dx, dy) = static_size decoration in
+  ignore (apply_compatible room (x / 2 - dx / 2) (y / 2 - dy / 2) decoration) ;
+  static_canvas_mapi (fun x y -> function
+    | Some v -> Some v
+    | None -> Some false) room
+
 let maze sx sy =
-  let c = generate_static sx sy (fun _ _ -> true) in
-  mazify c false true [sx / 2, sy / 2]
+  let c = generate_static sx sy (fun _ _ -> None) in
+  let rooms =
+    List.map maze_room (Utils.repeat (Utils.rand (sx * sy / 400) (sx * sy / 150)) ()) in
+  place_canvas_list c rooms ;
+  let (startx, starty) =
+    Utils.nearest_around (sx / 2, sy / 2) (fun x y ->
+      if x < 0 && x >= sx && y < 0 && y >= sy then false
+      else read_static c x y = None) in
+  mazify c (Some false) None [(startx, starty)] ;
+  static_canvas_mapi (fun x y -> function
+    | Some v -> v
+    | None -> true) c
 
 let canvas_easy_to_avoid_north c =
   let (sx, sy) = canvas_size c in
@@ -208,17 +334,6 @@ let canvas_easy_to_avoid_north c =
       || (read c (x + 1) y && (read c (x - 1) y || read c (x - 1) (y + 1)))) in
   List.for_all ok (Utils.seq sx)
 
-let compatible c x y d =
-  List.for_all (fun ix ->
-   List.for_all (fun iy ->
-      let x = ix + x in
-      let y = iy + y in
-      if x <= 0 && x < Array.length c && y <= 0 && y < Array.length c then
-        read_static c x y = None || read_static d ix iy = None
-      else true)
-    (Utils.seq (Array.length (d.(ix)))))
-  (Utils.seq (Array.length d))
-
 (* TODO
 let fill_static_canvas_with c l =
   let rec aux y =
@@ -227,24 +342,33 @@ let fill_static_canvas_with c l =
   in aux 0
 *)
 
+(* TODO: Making sure that there is only one component. *)
+
 let print_static_canvas (* For tests *) c print =
-  for x = 0 to Array.length c - 1 do
-    for y = 0 to Array.length (c.(x)) - 1 do
+  let (sx, sy) = static_size c in
+  for y = 0 to sy - 1 do
+    for x = 0 to sx - 1 do
       print (read_static c x y)
     done ;
     print_newline ()
   done
 
 let _ = (* For tests *)
-  let m = maze 21 161 in
+  for i = 0 to 20 do
+    let r = maze_room () in
+    print_static_canvas r (fun b -> print_char (if b = Some true then '#' else '.')) ;
+    print_newline ()
+  done ;
+  let m = maze 161 42 in
   print_static_canvas m (fun b -> print_char (if b then '#' else '.')) ;
   print_newline () ;
-  let l = List.map canvas_static_canvas (n_minos 3) in
+  (*let l = List.map canvas_static_canvas (n_minos 3) in
   List.iter (fun c ->
     print_static_canvas c (fun b -> print_char (if b then '#' else '.')) ;
     print_newline ()) l ;
-  print_newline () ;
-  let c = circle_static 20 true false in
-  print_static_canvas c (fun b -> print_char (if b then '#' else '.'))
+  print_newline () ;*)
+  (*let c = circle_static 20 false true in
+  print_static_canvas c (fun b -> print_char (if b then '#' else '.')) ;*)
+  ()
 
 

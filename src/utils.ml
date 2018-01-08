@@ -99,6 +99,32 @@ let array_count f = Array.fold_left (fun v x -> v + if f x then 1 else 0) 0
 let array_for_all f = Array.fold_left (fun v x -> v && f x) true
 
 
+let nearest_around (x, y) f =
+  let rec find_in = function
+    | [] -> None
+    | (x, y) :: l ->
+      if f x y then Some (x, y)
+      else find_in l in
+  let rec ring k =
+    match find_in [(x, y + k) ; (x, y - k) ; (x - k, y) ; (x + k, y)] with
+    | Some v -> v
+    | None ->
+      let rec aux i =
+        if i = k then None
+        else
+            match find_in [(x + i, y + k) ; (x - i, y + k) ; (x + i, y - k) ; (x - i, y - k) ;
+              (x + k, y + i) ; (x + k, y - i) ; (x - k, y + i) ; (x - k, y + i)] with
+          | Some v -> Some v
+          | None -> aux (i + 1) in
+      match aux 1 with
+      | Some v -> v
+      | None ->
+        match find_in [(x + k, y + k) ; (x - k, y - k) ; (x + k, y - k) ; (x - k, y + k)] with
+        | Some v -> v
+        | None -> ring (k + 1) in
+  if f x y then (x, y)
+  else ring 1
+
 type idt = int
 
 let new_id_function () =

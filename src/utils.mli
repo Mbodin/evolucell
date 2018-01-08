@@ -1,7 +1,6 @@
 (** Module Utils
  * Contains useful type declarations and functions. **)
 
-
 (** Returns its argument. **)
 val id : 'a -> 'a
 
@@ -81,6 +80,10 @@ val array_count : ('a -> bool) -> 'a array -> int
 
 (** Indicates whether all the elements of the array satisfies the predicate. **)
 val array_for_all : ('a -> bool) -> 'a array -> bool
+
+
+(** Finds the nearest points around the given coordinates that matches the predicate. **)
+val nearest_around : (int * int) -> (int -> int -> bool) -> (int * int)
 
 
 (** A type for identifiers. Integers are used internally, but hiding this fact in the signature helps preventing mistakes. **)
