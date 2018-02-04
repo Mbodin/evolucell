@@ -90,10 +90,12 @@ let rectangle_static : _ -> _ -> _ -> 'a static_canvas = Array.make_matrix
 
 let generate_static x y f =
   let f00 = f 0 0 in (* The value is stored in case it is doing any side effect. *)
+  let f x y =
+    if x = 0 && y = 0 then f00 else f x y in
   let c = rectangle_static x y f00 in
   for x = 0 to x - 1 do
     for y = 0 to y - 1 do
-      write_static c x y (if x = 0 && y = 0 then f00 else f x y)
+      write_static c x y (f x y)
     done
   done ;
   c
@@ -107,10 +109,10 @@ let circle_static xy v_intern v_extern =
       if Utils.square (2 * x - xy + 1) + Utils.square (2 * y - xy + 1)
          <= 1 + Utils.square (xy - 1) then v_intern else v_extern)
 
-let rec crop_static c x1 y1 x2 y2 =
-  if x1 > x2 then crop_static c x2 y1 x1 y2
-  else if y1 > y2 then crop_static c x1 y2 x2 y1
-  else Array.map (fun a -> Array.sub a y1 (y2 - y1)) (Array.sub c x1 (x2 - x1))
+let crop_static c x1 y1 x2 y2 =
+  let (x1, x2) = Utils.pair_sort (x1, x2) in
+  let (y1, y2) = Utils.pair_sort (y1, y2) in
+  Array.map (fun a -> Array.sub a y1 (y2 - y1)) (Array.sub c x1 (x2 - x1))
 
 let transpose_static c =
   let (sx, sy) = static_size c in
@@ -177,24 +179,24 @@ let add_border c s f =
   apply (fun _ v -> v) r s s c ;
   r
 
+let neighbours c diag x y =
+  let ok (x, y) = bounds_static c x y in
+  List.filter ok [(x + 1, y) ; (x - 1, y) ; (x, y + 1) ; (x, y - 1)]
+  @ if diag then
+      List.filter ok [(x + 1, y + 1) ; (x - 1, y + 1) ; (x + 1, y - 1) ; (x - 1, y - 1)]
+    else []
+
 let extend_neighbours c diag f v =
   let (sx, sy) = static_size c in
   let f v' = v' = v || f v' in
   let f (x, y) = f (read_static c x y) in
-  let neighbours x y =
-    let ok (x, y) =
-      x >= 0 && x < sx && y >= 0 && y < sy in
-    List.filter ok [(x + 1, y) ; (x - 1, y) ; (x, y + 1) ; (x, y - 1)]
-    @ if diag then
-        List.filter ok [(x + 1, y + 1) ; (x - 1, y + 1) ; (x + 1, y - 1) ; (x - 1, y - 1)]
-      else [] in
   List.iter (fun x ->
-   List.iter (fun y ->
-     if List.exists f (neighbours x y) then
-       if not (f (x, y)) then
-         write_static c x y v)
-    (Utils.seq sy))
-  (Utils.seq sx)
+     List.iter (fun y ->
+        if List.exists f (neighbours c diag x y) then
+          if not (f (x, y)) then
+            write_static c x y v)
+       (Utils.seq sy))
+    (Utils.seq sx)
 
 let apply_compatible c x y d =
   if compatible c x y d then (
@@ -264,6 +266,81 @@ let gilder _ =
       if Random.bool () then gilder
       else flip_horizontally_static gilder in
     gilder
+
+let draw_rectangle c e x1 y1 x2 y2 =
+  let (x1, x2) = Utils.pair_sort (x1, x2) in
+  let (y1, y2) = Utils.pair_sort (y1, y2) in
+  let r = rectangle_static (1 + x2 - x1) (1 + y2 - y1) e in
+  apply (fun _ v -> v) c x1 y1 r
+
+let rec line c diag e x1 y1 x2 y2 =
+  let vertical_line x y1 y2 =
+    draw_rectangle c e x y1 x y2 in
+  if x1 = x2 then vertical_line x1 y1 y2
+  else if x1 > x2 then line c diag e x2 y2 x1 y1
+  else
+    let f x = y1 + (y2 - y1) * (x1 - x) / (x1 - x2) in
+    for x = x1 to x2 - 1 do
+      let diff x =
+        if f x = f (x + 1) then 0
+        else if f x > f (x + 1) then 1
+        else -1 in
+      vertical_line x (f x) (f (x + 1) + if diag then 0 else diff x)
+    done ;
+    write_static c x2 y2 e
+
+let large_line c w e x1 y1 x2 y2 =
+  if abs (x1 - x2) >= w && abs (y1 - y2) >= w then
+    let line = line c true e in
+    let sign_x i = if x1 < x2 then i else -i in
+    let sign_y i = if y1 < y2 then i else -i in
+    let (xadd, yadd) =
+      if w mod 2 = 0 then (0, 0)
+      else
+        if Random.bool () then (0, 1) else (1, 0) in
+    for i = 0 to w / 2 + xadd do
+      line (x1 + sign_x i) y1 x2 (y2 - sign_y i)
+    done ;
+    for i = 1 to w / 2 + yadd do
+      line x1 (y1 + sign_y i) (x2 - sign_x i) y2
+    done
+  else draw_rectangle c e x1 y1 x2 y2
+
+let merge_all_components c diag is_cell e =
+  let u = Utils.UnionFind.create () in
+  let (sx, sy) = static_size c in
+  let is_cell_coord (x, y) =
+    is_cell (read_static c x y) in
+  let u =
+    List.fold_left (fun u x ->
+       List.fold_left (fun u y ->
+           if is_cell_coord (x, y) then
+             List.fold_left (fun u (x', y') ->
+                 Utils.UnionFind.merge u (x, y) (x', y')) u
+               (List.filter is_cell_coord (neighbours c diag x y))
+           else u)
+         u (Utils.seq sy))
+      u (Utils.seq sx) in
+  let nearest u (x, y) =
+    match Utils.UnionFind.find u (x, y) with
+    | None -> assert false
+    | Some (c, u) ->
+      let u = ref u in
+      (Utils.nearest_around (x, y) (fun x' y' ->
+        if is_cell_coord (x', y') then
+          match Utils.UnionFind.find !u (x', y') with
+          | None -> assert false
+          | Some (c', u') ->
+            u := u' ;
+            c <> c'
+        else false), !u) in
+  ignore
+    (List.fold_left (fun u (x, y) ->
+        let ((x', y'), u) = nearest u (x, y) in
+        let ((x, y), u) = nearest u (x', y') in
+        line c true e x y x' y' ;
+        Utils.UnionFind.merge u (x, y) (x', y'))
+      u (Utils.safe_tail (Utils.UnionFind.to_list u)))
 
 let maze_room _ =
   let room =
@@ -342,7 +419,6 @@ let fill_static_canvas_with c l =
   in aux 0
 *)
 
-(* TODO: Making sure that there is only one component. *)
 
 let print_static_canvas (* For tests *) c print =
   let (sx, sy) = static_size c in
@@ -354,21 +430,18 @@ let print_static_canvas (* For tests *) c print =
   done
 
 let _ = (* For tests *)
-  for i = 0 to 20 do
-    let r = maze_room () in
-    print_static_canvas r (fun b -> print_char (if b = Some true then '#' else '.')) ;
-    print_newline ()
-  done ;
+  let c = rectangle_static 50 20 None in
+  let (x1, y1) = (Random.int 50, Random.int 20) in
+  let (x2, y2) = (Random.int 50, Random.int 20) in
+  large_line c (Utils.rand 1 5) (Some true) x1 y1 x2 y2 ;
+  write_static c x1 y1 (Some false) ;
+  write_static c x2 y2 (Some false) ;
+  print_static_canvas c (fun b -> print_char (match b with None -> '.' | Some true -> '#' | Some false -> '*')) ;
+  print_newline () ;
+  print_newline () ;
   let m = maze 161 42 in
   print_static_canvas m (fun b -> print_char (if b then '#' else '.')) ;
   print_newline () ;
-  (*let l = List.map canvas_static_canvas (n_minos 3) in
-  List.iter (fun c ->
-    print_static_canvas c (fun b -> print_char (if b then '#' else '.')) ;
-    print_newline ()) l ;
-  print_newline () ;*)
-  (*let c = circle_static 20 false true in
-  print_static_canvas c (fun b -> print_char (if b then '#' else '.')) ;*)
   ()
 
 

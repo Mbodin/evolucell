@@ -74,6 +74,15 @@ val add_border : 'a static_canvas -> int -> 'a -> 'a static_canvas
 (** All the cells whose neighbourhood (the boolean indicates whether diagonals should be considered) is recognised by the given function that are not themselves recognised by the function are set to the given value. **)
 val extend_neighbours : 'a static_canvas -> bool -> ('a -> bool) -> 'a -> unit
 
+(** Enforce that all components of the canvas (the given function indicating which cells are to be considered, the stand-alone boolean indicates whether diagonals are taken into account) are linked together using the given element. **)
+val merge_all_components : 'a static_canvas -> bool -> ('a -> bool) -> 'a -> unit
+
+(** Generates a line from the first coordinate to the second using the given element. The boolean indicates whether it should be connex. **)
+val line : 'a static_canvas -> bool -> 'a -> int -> int -> int -> int -> unit
+
+(** Generates a line from the first coordinate to the second of the given width. **)
+val large_line : 'a static_canvas -> int -> 'a -> int -> int -> int -> int -> unit
+
 (** Generates a static canvas of the given size using the following initialising function. **)
 val generate_static : int -> int -> (int -> int -> 'a) -> 'a static_canvas
 
@@ -106,6 +115,9 @@ val rectangle_static : int -> int -> 'a -> 'a static_canvas
 
 (** Generates a static canvas of the given size and fills it with a circle. The circle is filled inside with the first vaue and outside with the second. **)
 val circle_static : int -> 'a -> 'a -> 'a static_canvas
+
+(** Draws a rectangle between the given coordinates. **)
+val draw_rectangle : 'a static_canvas -> 'a -> int -> int -> int -> int -> unit
 
 (** Tests whether a given obstacle is easy to avoid with only one programming state whilst moving North. **)
 val canvas_easy_to_avoid_north : bool canvas -> bool

@@ -1,6 +1,8 @@
 
 let number = 1000
 
+type coordinate = int * int
+
 (** The particle properties are defined by the following arrays, each tracking a specific aspect of the particle. The following lines declare these arrays, but do not fill them yet. **)
 let data_passive_damage = Array.make number 0
 let data_active_damage = Array.make number 0
