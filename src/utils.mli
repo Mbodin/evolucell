@@ -92,7 +92,7 @@ val array_count : ('a -> bool) -> 'a array -> int
 val array_for_all : ('a -> bool) -> 'a array -> bool
 
 
-(** Finds the nearest points around the given coordinates that matches the predicate. **)
+(** Finds the nearest points around the given coordinates that matches the predicate. This function may loop if none other coordinates match the predicate. **)
 val nearest_around : (int * int) -> (int -> int -> bool) -> (int * int)
 
 
@@ -153,7 +153,7 @@ module UnionFind : sig
     (** Same as insert, but also returns the associated identifier. **)
     val insert_idt : 'a t -> 'a -> Id.t * 'a t
 
-    (** Merges two elements of the union-find structure. If the elements are not present, it creates it. **)
+    (** Merges two elements of the union-find structure. If the elements are not present, it creates them in the structure. **)
     val merge : 'a t -> 'a -> 'a -> 'a t
 
     (** Same as merge, but also returns the associated identifier. **)
@@ -173,6 +173,12 @@ module UnionFind : sig
 
     (** Provides a list of equivalence classes. **)
     val to_list : 'a t -> 'a list
+
+    (** Provides one class of the union-find structure. There is no guarantee which one will be picked. Only returns None if the structure is empty. **)
+    val get_one_class : 'a t -> 'a option
+
+    (** Returns true if there is exactly or less than one class, that is if all elements of the union-find are from the same class. **)
+    val one_class : 'a t -> bool
 
   end
 

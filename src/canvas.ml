@@ -273,11 +273,14 @@ let draw_rectangle c e x1 y1 x2 y2 =
   let r = rectangle_static (1 + x2 - x1) (1 + y2 - y1) e in
   apply (fun _ v -> v) c x1 y1 r
 
-let rec line c diag e x1 y1 x2 y2 =
+let rec line_with_informations c diag e x1 y1 x2 y2 =
+  let all_writes = ref [] in
   let vertical_line x y1 y2 =
+    all_writes :=
+      List.map (fun y -> (x, y)) (Utils.seq_range (min y1 y2) (max y1 y2)) @ !all_writes ;
     draw_rectangle c e x y1 x y2 in
-  if x1 = x2 then vertical_line x1 y1 y2
-  else if x1 > x2 then line c diag e x2 y2 x1 y1
+  if x1 = x2 then (vertical_line x1 y1 y2 ; !all_writes)
+  else if x1 > x2 then line_with_informations c diag e x2 y2 x1 y1
   else
     let f x = y1 + (y2 - y1) * (x1 - x) / (x1 - x2) in
     for x = x1 to x2 - 1 do
@@ -287,7 +290,11 @@ let rec line c diag e x1 y1 x2 y2 =
         else -1 in
       vertical_line x (f x) (f (x + 1) + if diag then 0 else diff x)
     done ;
-    write_static c x2 y2 e
+    write_static c x2 y2 e ;
+    (x2, y2) :: !all_writes
+
+let line c diag e x1 y1 x2 y2 =
+  ignore (line_with_informations c diag e x1 y1 x2 y2)
 
 let large_line c w e x1 y1 x2 y2 =
   if abs (x1 - x2) >= w && abs (y1 - y2) >= w then
@@ -314,7 +321,9 @@ let merge_all_components c diag is_cell e =
   let u =
     List.fold_left (fun u x ->
        List.fold_left (fun u y ->
+           assert (bounds_static c x y) ;
            if is_cell_coord (x, y) then
+             let u = Utils.UnionFind.insert u (x, y) in
              List.fold_left (fun u (x', y') ->
                  Utils.UnionFind.merge u (x, y) (x', y')) u
                (List.filter is_cell_coord (neighbours c diag x y))
@@ -324,23 +333,30 @@ let merge_all_components c diag is_cell e =
   let nearest u (x, y) =
     match Utils.UnionFind.find u (x, y) with
     | None -> assert false
-    | Some (c, u) ->
+    | Some (cl, u) ->
       let u = ref u in
-      (Utils.nearest_around (x, y) (fun x' y' ->
-        if is_cell_coord (x', y') then
-          match Utils.UnionFind.find !u (x', y') with
-          | None -> assert false
-          | Some (c', u') ->
-            u := u' ;
-            c <> c'
-        else false), !u) in
-  ignore
-    (List.fold_left (fun u (x, y) ->
+      let nxy =
+        Utils.nearest_around (x, y) (fun x' y' ->
+          if bounds_static c x' y' && is_cell_coord (x', y') then
+            match Utils.UnionFind.find !u (x', y') with
+            | None -> assert false (* FIXME: This happens… why? *)
+            | Some (cl', u') ->
+              u := u' ;
+              cl <> cl'
+          else false) in
+      (nxy, !u) in
+  let rec aux u =
+    if not (Utils.UnionFind.one_class u) then
+      match Utils.UnionFind.get_one_class u with
+      | None -> assert false
+      | Some (x, y) ->
         let ((x', y'), u) = nearest u (x, y) in
         let ((x, y), u) = nearest u (x', y') in
-        line c true e x y x' y' ;
-        Utils.UnionFind.merge u (x, y) (x', y'))
-      u (Utils.safe_tail (Utils.UnionFind.to_list u)))
+        let l = line_with_informations c true e x y x' y' in
+        let u =
+          List.fold_left (fun u xy -> Utils.UnionFind.merge u xy (x, y)) u l in
+        aux (Utils.UnionFind.merge u (x, y) (x', y')) in
+  aux u
 
 let maze_room _ =
   let room =
@@ -430,16 +446,8 @@ let print_static_canvas (* For tests *) c print =
   done
 
 let _ = (* For tests *)
-  let c = rectangle_static 50 20 None in
-  let (x1, y1) = (Random.int 50, Random.int 20) in
-  let (x2, y2) = (Random.int 50, Random.int 20) in
-  large_line c (Utils.rand 1 5) (Some true) x1 y1 x2 y2 ;
-  write_static c x1 y1 (Some false) ;
-  write_static c x2 y2 (Some false) ;
-  print_static_canvas c (fun b -> print_char (match b with None -> '.' | Some true -> '#' | Some false -> '*')) ;
-  print_newline () ;
-  print_newline () ;
   let m = maze 161 42 in
+  merge_all_components m true Utils.id true ;
   print_static_canvas m (fun b -> print_char (if b then '#' else '.')) ;
   print_newline () ;
   ()

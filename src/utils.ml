@@ -1,6 +1,7 @@
 
 let _ = Random.self_init ()
 
+
 let id x = x
 
 let option_map f = function
@@ -212,15 +213,20 @@ module UnionFind = struct
     let insert mp e =
       snd (insert_idt mp e)
 
+    (** Internal function: finds the representant identifier of a given identifier. It may raise Not_found if i is not present in the mapping. **)
+    let rec representant p i =
+      let pi = PMap.find i p in
+      if i = pi then (i, p)
+      else
+        let (pi', p) = representant p pi in
+        (pi', PMap.add i pi' p)
+
     let find (m, p) e =
-      let rec aux p i =
-        let pi = PMap.find i p in
-        if i = pi then
-          (i, (m, p))
-        else let (pi', (m, p)) = aux p pi in
-          (pi', (m, PMap.add i pi' p))
+      let aux i =
+        let (i, p) = representant p i in
+        (i, (m, p))
       in try
-        option_map (aux p) (Id.get_id m e)
+        option_map aux (Id.get_id m e)
       with Not_found -> None
 
     let find_insert mp e =
@@ -251,6 +257,34 @@ module UnionFind = struct
 
     let iter f =
       fold (fun e () -> f e) ()
+
+    exception Found
+
+    let get_one_class (m, p) =
+      let r = ref None in
+      try
+        PMap.iter (fun i ip -> r := Some ip ; raise Found) p ;
+        None
+      with Found ->
+        match !r with
+        | None -> assert false
+        | Some i ->
+          let i = fst (representant p i) in
+          match Id.map_inverse m i with
+          | None -> assert false
+          | Some v -> Some v
+
+    let one_class (m, p) =
+      match get_one_class (m, p) with
+      | None -> true
+      | Some e ->
+        match Id.get_id m e with
+        | None -> assert false
+        | Some i ->
+          try
+            PMap.iter (fun _ ip -> if i <> fst (representant p ip) then raise Found) p ;
+            true
+          with Found -> false
 
   end
 
