@@ -31,7 +31,7 @@ val seq : int -> int list
 (** Builds the list of nth first elements, from 0 to n. **)
 val seq_incl : int -> int list
 
-(** Builds the list from i to j. **)
+(** Builds the list from i to j, included. **)
 val seq_range : int -> int -> int list
 
 (** Creates a list of the given size filled with the given argument. **)

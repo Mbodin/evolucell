@@ -35,12 +35,12 @@ let rec unfold f i =
 let seq_range min max =
   (* We assume i >= 0. *)
   unfold (fun j ->
-    if j = max then None
+    if j = max + 1 then None
     else Some (j, j + 1)) min
 
-let seq = seq_range 0
+let seq_incl = seq_range 0
 
-let seq_incl i = seq (i + 1)
+let seq i = seq_incl (i - 1)
 
 let uniq l =
   let rec aux = function

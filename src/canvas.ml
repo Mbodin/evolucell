@@ -49,8 +49,10 @@ let rec n_minos n =
         if accept x y then
           [write c x y true]
         else [] in
-      let aux_y x = List.concat (List.map (local x) (Utils.seq_range (-1) (sy + 1))) in
-      let aux_x = List.concat (List.map aux_y (Utils.seq_range (-1) (sx + 1))) in
+      let aux_y x =
+        List.concat (List.map (local x) (Utils.seq_range (-1) (sy + 1))) in
+      let aux_x =
+        List.concat (List.map aux_y (Utils.seq_range (-1) (sx + 1))) in
       aux_x in
     Utils.uniq (List.concat (List.map next r))
 
@@ -277,7 +279,8 @@ let rec line_with_informations c diag e x1 y1 x2 y2 =
   let all_writes = ref [] in
   let vertical_line x y1 y2 =
     all_writes :=
-      List.map (fun y -> (x, y)) (Utils.seq_range (min y1 y2) (max y1 y2)) @ !all_writes ;
+      List.map (fun y -> (x, y)) (Utils.seq_range (min y1 y2) (max y1 y2))
+      @ !all_writes ;
     draw_rectangle c e x y1 x y2 in
   if x1 = x2 then (vertical_line x1 y1 y2 ; !all_writes)
   else if x1 > x2 then line_with_informations c diag e x2 y2 x1 y1
@@ -318,15 +321,17 @@ let merge_all_components c diag is_cell e =
   let (sx, sy) = static_size c in
   let is_cell_coord (x, y) =
     is_cell (read_static c x y) in
+  let add_new_cell u x y =
+    let u = Utils.UnionFind.insert u (x, y) in
+    List.fold_left (fun u (x', y') ->
+        Utils.UnionFind.merge u (x, y) (x', y')) u
+      (List.filter is_cell_coord (neighbours c diag x y)) in
   let u =
     List.fold_left (fun u x ->
        List.fold_left (fun u y ->
            assert (bounds_static c x y) ;
            if is_cell_coord (x, y) then
-             let u = Utils.UnionFind.insert u (x, y) in
-             List.fold_left (fun u (x', y') ->
-                 Utils.UnionFind.merge u (x, y) (x', y')) u
-               (List.filter is_cell_coord (neighbours c diag x y))
+             add_new_cell u x y
            else u)
          u (Utils.seq sy))
       u (Utils.seq sx) in
@@ -339,22 +344,30 @@ let merge_all_components c diag is_cell e =
         Utils.nearest_around (x, y) (fun x' y' ->
           if bounds_static c x' y' && is_cell_coord (x', y') then
             match Utils.UnionFind.find !u (x', y') with
-            | None -> assert false (* FIXME: This happens… why? *)
+            | None -> assert false
             | Some (cl', u') ->
               u := u' ;
               cl <> cl'
           else false) in
       (nxy, !u) in
   let rec aux u =
+    (* TODO: Sometimes it loops at the end, with very few classes left. A solution whould be to print the map using a different number for each class, and a special character for non-cell, to debug. *)
+    print_endline (string_of_int (List.length (Utils.UnionFind.to_list u))) ;
     if not (Utils.UnionFind.one_class u) then
       match Utils.UnionFind.get_one_class u with
       | None -> assert false
       | Some (x, y) ->
-        let ((x', y'), u) = nearest u (x, y) in
+        print_endline "A" ;
+        let ((x', y'), u) = nearest u (x, y) in (* TODO: The bug seems to find another class here… maybe a bug in the union-find? *)
+        print_endline "B" ;
         let ((x, y), u) = nearest u (x', y') in
+        print_endline "C" ;
         let l = line_with_informations c true e x y x' y' in
+        print_endline "D" ;
         let u =
-          List.fold_left (fun u xy -> Utils.UnionFind.merge u xy (x, y)) u l in
+          List.fold_left (fun u xy ->
+            Utils.UnionFind.merge u xy (x, y)) u l in
+        print_endline "E" ;
         aux (Utils.UnionFind.merge u (x, y) (x', y')) in
   aux u
 
@@ -446,8 +459,8 @@ let print_static_canvas (* For tests *) c print =
   done
 
 let _ = (* For tests *)
-  let m = maze 161 42 in
-  merge_all_components m true Utils.id true ;
+  let m = maze 161 43 in
+  merge_all_components m true (not) false ;
   print_static_canvas m (fun b -> print_char (if b then '#' else '.')) ;
   print_newline () ;
   ()
