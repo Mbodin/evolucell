@@ -336,38 +336,28 @@ let merge_all_components c diag is_cell e =
          u (Utils.seq sy))
       u (Utils.seq sx) in
   let nearest u (x, y) =
-    match Utils.UnionFind.find u (x, y) with
-    | None -> assert false
-    | Some (cl, u) ->
-      let u = ref u in
-      let nxy =
-        Utils.nearest_around (x, y) (fun x' y' ->
-          if bounds_static c x' y' && is_cell_coord (x', y') then
-            match Utils.UnionFind.find !u (x', y') with
-            | None -> assert false
-            | Some (cl', u') ->
-              u := u' ;
-              cl <> cl'
-          else false) in
-      (nxy, !u) in
+    Utils.nearest_around (x, y) (fun x' y' ->
+      if bounds_static c x' y' && is_cell_coord (x', y') then
+        match Utils.UnionFind.same_class u (x, y) (x', y') with
+        | None -> assert false
+        | Some b -> not b
+      else false) in
   let rec aux u =
+    print_endline (string_of_int (List.length (Utils.UnionFind.to_list u))) ; (* FIXME *)
     (* TODO: Sometimes it loops at the end, with very few classes left. A solution whould be to print the map using a different number for each class, and a special character for non-cell, to debug. *)
-    print_endline (string_of_int (List.length (Utils.UnionFind.to_list u))) ;
     if not (Utils.UnionFind.one_class u) then
       match Utils.UnionFind.get_one_class u with
       | None -> assert false
       | Some (x, y) ->
-        print_endline "A" ;
-        let ((x', y'), u) = nearest u (x, y) in (* TODO: The bug seems to find another class here… maybe a bug in the union-find? *)
-        print_endline "B" ;
-        let ((x, y), u) = nearest u (x', y') in
-        print_endline "C" ;
+        print_endline "Debug A" ;
+        let (x', y') = nearest u (x, y) in
+        print_endline "Debug B" ;
+        let (x, y) = nearest u (x', y') in
+        print_endline "Debug C" ;
         let l = line_with_informations c true e x y x' y' in
-        print_endline "D" ;
         let u =
           List.fold_left (fun u xy ->
             Utils.UnionFind.merge u xy (x, y)) u l in
-        print_endline "E" ;
         aux (Utils.UnionFind.merge u (x, y) (x', y')) in
   aux u
 

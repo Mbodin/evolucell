@@ -195,11 +195,11 @@ module Id = struct
 module UnionFind = struct
 
     type 'a t =
-      'a Id.map * (Id.t, Id.t) PMap.t
+      'a Id.map * (Id.t, Id.t) PMap.t ref
 
-    let create _ = Id.map_create (), PMap.empty
+    let create _ = (Id.map_create (), ref PMap.empty)
 
-    let create_idt = Id.t_map_create, PMap.empty
+    let create_idt = (Id.t_map_create, ref PMap.empty)
     let create_int = create_idt
 
     let insert_idt (m, p) e =
@@ -208,44 +208,51 @@ module UnionFind = struct
         | None ->
           Id.map_insert_t m e
         | Some i -> (i, m)
-      in (i, (m, PMap.add i i p))
+      in (i, (m, ref (PMap.add i i !p)))
 
     let insert mp e =
       snd (insert_idt mp e)
 
     (** Internal function: finds the representant identifier of a given identifier. It may raise Not_found if i is not present in the mapping. **)
     let rec representant p i =
-      let pi = PMap.find i p in
-      if i = pi then (i, p)
+      let pi = PMap.find i !p in
+      if i = pi then i
       else
-        let (pi', p) = representant p pi in
-        (pi', PMap.add i pi' p)
+        let pi' = representant p pi in
+        p := PMap.add i pi' !p ;
+        pi'
 
     let find (m, p) e =
-      let aux i =
-        let (i, p) = representant p i in
-        (i, (m, p))
-      in try
-        option_map aux (Id.get_id m e)
+      try
+        option_map (representant p) (Id.get_id m e)
       with Not_found -> None
 
     let find_insert mp e =
       match find mp e with
-      | Some r -> r
-      | None ->
-        insert_idt mp e
+      | Some i -> (i, mp)
+      | None -> insert_idt mp e
 
     let merge_idt mp e1 e2 =
       let (i1, mp) = find_insert mp e1 in
       let (i2, (m, p)) = find_insert mp e2 in
-      (i2, (m, PMap.add i1 i2 p))
+      (i2, (m, ref (PMap.add i1 i2 !p)))
 
     let merge mp e1 e2 =
       snd (merge_idt mp e1 e2)
 
+    let same_class_insert mp e1 e2 =
+      let (i1, mp) = find_insert mp e1 in
+      let (i2, mp) = find_insert mp e2 in
+      (i1 = i2, mp)
+
+    let same_class mp e1 e2 =
+      if_option (find mp e1) (fun i1 ->
+        if_option (find mp e2) (fun i2 ->
+          Some (i1 = i2)))
+
     let to_list (m, p) =
       let classes =
-        PMap.foldi (fun i ip l -> if i = ip then i :: l else l) p [] in
+        PMap.foldi (fun i ip l -> if i = ip then i :: l else l) !p [] in
       let representants =
         List.map (Id.map_inverse m) classes in
       List.map (function
@@ -263,14 +270,13 @@ module UnionFind = struct
     let get_one_class (m, p) =
       let r = ref None in
       try
-        PMap.iter (fun i ip -> r := Some ip ; raise Found) p ;
+        PMap.iter (fun i ip -> r := Some ip ; raise Found) !p ;
         None
       with Found ->
         match !r with
         | None -> assert false
         | Some i ->
-          let i = fst (representant p i) in
-          match Id.map_inverse m i with
+          match Id.map_inverse m (representant p i) with
           | None -> assert false
           | Some v -> Some v
 
@@ -282,7 +288,7 @@ module UnionFind = struct
         | None -> assert false
         | Some i ->
           try
-            PMap.iter (fun _ ip -> if i <> fst (representant p ip) then raise Found) p ;
+            PMap.iter (fun _ ip -> if i <> representant p ip then raise Found) !p ;
             true
           with Found -> false
 

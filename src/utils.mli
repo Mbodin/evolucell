@@ -150,20 +150,14 @@ module UnionFind : sig
     (** Inserts an element to the given union-find structure: it is now associated to a identifier. **)
     val insert : 'a t -> 'a -> 'a t
 
-    (** Same as insert, but also returns the associated identifier. **)
-    val insert_idt : 'a t -> 'a -> Id.t * 'a t
-
     (** Merges two elements of the union-find structure. If the elements are not present, it creates them in the structure. **)
     val merge : 'a t -> 'a -> 'a -> 'a t
 
-    (** Same as merge, but also returns the associated identifier. **)
-    val merge_idt : 'a t -> 'a -> 'a -> Id.t * 'a t
+    (** States whether two elements are in the same equivalence class in the union-find.  Returns None if one element is not in the structure. **)
+    val same_class : 'a t -> 'a -> 'a -> bool option
 
-    (** Returns the identifier of the class of an element in a union-find. Note that such identifiers are updated at each merge. May return None if the element is not present. The find function may optimise the union-find structure: the update structure is returned in the result. Such an optimised structure is equivalent than the previous one, just quicker to read. **)
-    val find : 'a t -> 'a -> (Id.t * 'a t) option
-
-    (** Same as find, but inserts the element if not present. **)
-    val find_insert : 'a t -> 'a -> Id.t * 'a t
+    (** Same than same_class, but inserts the elements in the structure if they are not present. **)
+    val same_class_insert : 'a t -> 'a -> 'a -> bool * 'a t
 
     (** Fold along all classes of the union-find structure. **)
     val fold : ('a -> 'b -> 'b) -> 'b -> 'a t -> 'b
