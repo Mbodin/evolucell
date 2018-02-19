@@ -220,14 +220,14 @@ let place_canvas_list c =
 
 let mazify c v_path v_wall =
   let (sx, sy) = static_size c in
-  let neighbours x y =
+  let neighbours2 x y =
     let ok (x, y) =
       x >= 0 && x < sx && y >= 0 && y < sy in
     List.filter ok [(x + 2, y) ; (x - 2, y) ; (x, y + 2) ; (x, y - 2)] in
   let rec path x y i =
     if i = 0 then []
     else
-      let n = neighbours x y in
+      let n = neighbours2 x y in
       let n = List.filter (fun (x, y) -> read_static c x y = v_wall) n in
       if n = [] then []
       else
@@ -236,7 +236,7 @@ let mazify c v_path v_wall =
         write_static c ((x + x') / 2) ((y + y') / 2) v_path ;
         l @ path x' y' (i - 1) in
   let connect x y =
-    let n = neighbours x y in
+    let n = neighbours2 x y in
     let n = List.filter (fun (x, y) -> read_static c x y = v_path) n in
     if n = [] then ()
     else
@@ -317,24 +317,29 @@ let large_line c w e x1 y1 x2 y2 =
   else draw_rectangle c e x1 y1 x2 y2
 
 let merge_all_components c diag is_cell e =
-  let u = Utils.UnionFind.create () in
+  let is_cell e' =
+    e = e' || is_cell e' in
   let (sx, sy) = static_size c in
+  let u = Utils.UnionFind.create () in
   let is_cell_coord (x, y) =
     is_cell (read_static c x y) in
+  let special = (121, 9) in (* TODO: For debug *)
   let add_new_cell u x y =
     let u = Utils.UnionFind.insert u (x, y) in
-    List.fold_left (fun u (x', y') ->
-        Utils.UnionFind.merge u (x, y) (x', y')) u
+    List.fold_left (fun u ->
+        Utils.UnionFind.merge u (x, y)) u
       (List.filter is_cell_coord (neighbours c diag x y)) in
   let u =
     List.fold_left (fun u x ->
        List.fold_left (fun u y ->
            assert (bounds_static c x y) ;
+           (*print_endline ("At init time: " ^ match Utils.UnionFind.same_class u special (fst special + 1, snd special) with Some true -> "Yes" | Some false -> "no" | None -> "??") ;*) (* TODO: DEBUG *)
            if is_cell_coord (x, y) then
              add_new_cell u x y
            else u)
          u (Utils.seq sy))
       u (Utils.seq sx) in
+  print_endline ("At init: " ^ match Utils.UnionFind.same_class u special (fst special + 1, snd special) with Some true -> "Yes" | Some false -> "no" | None -> "??") ; (* TODO: DEBUG *)
   let nearest u (x, y) =
     Utils.nearest_around (x, y) (fun x' y' ->
       if bounds_static c x' y' && is_cell_coord (x', y') then
@@ -343,21 +348,50 @@ let merge_all_components c diag is_cell e =
         | Some b -> not b
       else false) in
   let rec aux u =
-    print_endline (string_of_int (List.length (Utils.UnionFind.to_list u))) ; (* FIXME *)
     (* TODO: Sometimes it loops at the end, with very few classes left. A solution whould be to print the map using a different number for each class, and a special character for non-cell, to debug. *)
+    (* TODO: Begin debug printing. *)
+    let _ =
+      let l = Utils.UnionFind.to_list u in
+      let l_len = List.length l in
+      print_endline ("Number of classes: " ^ string_of_int l_len) ;
+      print_endline (String.concat ", " (List.map (fun (x, y) -> "(" ^ string_of_int x ^ ", " ^ string_of_int y ^ ")") (neighbours c diag (fst special) (snd special)))) ;
+      print_endline (String.concat ", " (List.map (fun (x, y) -> "(" ^ string_of_int x ^ ", " ^ string_of_int y ^ ")") (List.filter is_cell_coord (neighbours c diag (fst special) (snd special))))) ;
+      print_endline (match Utils.UnionFind.same_class u special (fst special + 1, snd special) with Some true -> "Yes" | Some false -> "no" | None -> "??") ;
+      for y = 0 to sy - 1 do
+        for x = 0 to sx - 1 do
+          print_char
+            (if is_cell_coord (x, y) then
+               match Utils.list_predicate_index (fun (x', y') ->
+                   match Utils.UnionFind.same_class u (x, y) (x', y') with
+                   | None -> assert false
+                   | Some b -> b) l with
+               | None -> assert false
+               | Some i ->
+                 if (x, y) = special then '*'
+                 else if i < 10 then
+                   (string_of_int i).[0]
+                 else '>'
+             else if (x, y) = special then '+' else ' ')
+        done ;
+        print_newline ()
+      done ;
+      print_newline () in
+    (* Everytime, there is something like “0011###” printed: at some point, (adjacent) classes are not merged (see [test]). *)
+    (* TODO: End debug printing. *)
     if not (Utils.UnionFind.one_class u) then
       match Utils.UnionFind.get_one_class u with
       | None -> assert false
       | Some (x, y) ->
-        print_endline "Debug A" ;
+        print_endline "Debug A" ; (* FIXME *)
         let (x', y') = nearest u (x, y) in
-        print_endline "Debug B" ;
+        print_endline "Debug B" ; (* FIXME *)
         let (x, y) = nearest u (x', y') in
-        print_endline "Debug C" ;
+        print_endline "Debug C" ; (* FIXME *)
         let l = line_with_informations c true e x y x' y' in
         let u =
-          List.fold_left (fun u xy ->
-            Utils.UnionFind.merge u xy (x, y)) u l in
+          List.fold_left (fun u (xl, yl) ->
+              let u = add_new_cell u xl yl in
+              Utils.UnionFind.merge u (x, y) (xl, yl)) u l in
         aux (Utils.UnionFind.merge u (x, y) (x', y')) in
   aux u
 

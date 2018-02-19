@@ -1,5 +1,9 @@
 
-let _ = Random.self_init ()
+(*let _ = Random.self_init ()*)
+let _ = Random.init 42 (* TODO, Temporary *)
+
+(** Switches some asserts on. These asserts can be costly to perform. **)
+let assert_defend = true
 
 
 let id x = x
@@ -65,6 +69,12 @@ let rec list_remove i = function
   | _ :: l when i = 0 -> l
   | a :: l -> a :: list_remove (i - 1) l
 
+let rec list_predicate_index f = function
+  | [] -> None
+  | a :: _ when f a -> Some 0
+  | _ :: l -> option_map ((+) 1) (list_predicate_index f l)
+
+let list_index e = list_predicate_index ((=) e)
 
 let swap (a, b) = (b, a)
 
@@ -143,9 +153,9 @@ module Id = struct
 
     type t = int
 
-    let new_id_function () =
+    let new_id_function _ =
       let current = ref (-1) in
-      fun () ->
+      fun _ ->
         incr current ;
         !current
 
@@ -155,11 +165,11 @@ module Id = struct
 
 
     type _ map =
-      | Map : ('a, t) PMap.t (** Forwards map **) * (t, 'a) PMap.t (** Reverse map **) * (unit -> t) (** Allocating function **) -> 'a map
+      | Map : ('a, t) PMap.t (** Forwards map **) * (t, 'a) PMap.t (** Reverse map **) * int (** Fresh identifier **) -> 'a map
       | Int : t map (* No need to create new identifiers for integers! *)
 
     let map_create _ =
-      Map (PMap.empty, PMap.empty, (new_id_function ()))
+      Map (PMap.empty, PMap.empty, 0)
 
     let t_map_create =
       Int
@@ -168,8 +178,8 @@ module Id = struct
 
     let map_insert_t (type a) : a map -> a -> t * a map = function
       | Map (m, mi, f) -> fun o ->
-        let i = f () in
-        (i, Map (PMap.add o i m, PMap.add i o mi, f))
+        let i = f in
+        (i, Map (PMap.add o i m, PMap.add i o mi, 1 + f))
       | Int -> fun i ->
         (i, Int)
 
@@ -199,16 +209,18 @@ module UnionFind = struct
 
     let create _ = (Id.map_create (), ref PMap.empty)
 
-    let create_idt = (Id.t_map_create, ref PMap.empty)
+    let create_idt _ = (Id.t_map_create, ref PMap.empty)
     let create_int = create_idt
 
     let insert_idt (m, p) e =
       let (i, m) =
         match Id.get_id m e with
         | None ->
-          Id.map_insert_t m e
-        | Some i -> (i, m)
-      in (i, (m, ref (PMap.add i i !p)))
+          let (i, m) = Id.map_insert_t m e in
+          if assert_defend then assert (not (PMap.mem i !p)) ;
+          (i, m)
+        | Some i -> (i, m) in
+      (i, (m, ref (PMap.add i i !p)))
 
     let insert mp e =
       snd (insert_idt mp e)
@@ -216,29 +228,21 @@ module UnionFind = struct
     (** Internal function: finds the representant identifier of a given identifier. It may raise Not_found if i is not present in the mapping. **)
     let rec representant p i =
       let pi = PMap.find i !p in
-      if i = pi then i
+      if i = pi then pi
       else
         let pi' = representant p pi in
-        p := PMap.add i pi' !p ;
+        if assert_defend then assert (let pi'' = PMap.find pi' !p in pi' = pi'') ;
+        if pi <> pi' then p := PMap.add i pi' !p ;
         pi'
 
     let find (m, p) e =
-      try
-        option_map (representant p) (Id.get_id m e)
-      with Not_found -> None
+      try option_map (representant p) (Id.get_id m e)
+      with Not_found -> assert false
 
     let find_insert mp e =
       match find mp e with
       | Some i -> (i, mp)
       | None -> insert_idt mp e
-
-    let merge_idt mp e1 e2 =
-      let (i1, mp) = find_insert mp e1 in
-      let (i2, (m, p)) = find_insert mp e2 in
-      (i2, (m, ref (PMap.add i1 i2 !p)))
-
-    let merge mp e1 e2 =
-      snd (merge_idt mp e1 e2)
 
     let same_class_insert mp e1 e2 =
       let (i1, mp) = find_insert mp e1 in
@@ -249,6 +253,18 @@ module UnionFind = struct
       if_option (find mp e1) (fun i1 ->
         if_option (find mp e2) (fun i2 ->
           Some (i1 = i2)))
+
+    let merge_idt mp e1 e2 =
+      let (i1, mp) = find_insert mp e1 in
+      let (i2, (m, p)) = find_insert mp e2 in
+      if assert_defend then assert (let pi2 = PMap.find i2 !p in i2 = pi2) ;
+      if assert_defend then assert (let pi1 = PMap.find i1 !p in i1 = pi1) ;
+      (i2, (m, ref (PMap.add i1 i2 !p)))
+
+    let merge mp e1 e2 =
+      let mp = snd (merge_idt mp e1 e2) in
+      if assert_defend then assert (same_class mp e1 e2 = Some true) ;
+      mp
 
     let to_list (m, p) =
       let classes =

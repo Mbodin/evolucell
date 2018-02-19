@@ -43,6 +43,12 @@ val list_update : int -> 'a -> 'a list -> 'a list
 (** Removes the nth element from a list. **)
 val list_remove : int -> 'a list -> 'a list
 
+(** Returns the index where this element is in the list. **)
+val list_index : 'a -> 'a list -> int option
+
+(** Returns the index of the first element matching the predicate in the list. **)
+val list_predicate_index : ('a -> bool) -> 'a list -> int option
+
 (** Sorts and remove all duplicated element from the given list. **)
 val uniq : 'a list -> 'a list
 
@@ -144,8 +150,8 @@ module UnionFind : sig
     val create : unit -> 'a t
 
     (** Variant for specialised versions of the union-find structure. **)
-    val create_idt : Id.t t
-    val create_int : int t
+    val create_idt : unit -> Id.t t
+    val create_int : unit -> int t
 
     (** Inserts an element to the given union-find structure: it is now associated to a identifier. **)
     val insert : 'a t -> 'a -> 'a t
